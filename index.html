@@ -1,9 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Secret Santa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Hello, Secret Santa!</h1>
+  <!-- Login Screen -->
+  <div id="loginScreen">
+    <div id="loginBox">
+      <h1>🎅 Secret Santa 🎁</h1>
+      <p>Please enter your email to continue:</p>
+      <input id="email" type="email" placeholder="example@email.com">
+      <button onclick="handleLogin()">Login</button>
+      <div id="loader">
+        <div class="spinner"></div>
+        <p>Logging you in...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reveal Screen -->
+  <div id="revealScreen" style="display:none;">
+    <h2>You are buying a gift for:</h2>
+    <p id="assignedRevealName"></p>
+    <button onclick="continueToDashboard()">Continue</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" style="display:none;">
+    <h2>Welcome, <span id="userName"></span>!</h2>
+
+    <div class="tabs">
+      <button onclick="showTab('myWishlist')">My Wishlist</button>
+      <button onclick="showTab('assignedWishlist')">Assigned Wishlist</button>
+      <button onclick="showTab('chatAssigned')">Chat with <span id="assignedChatName"></span></button>
+      <button onclick="showTab('chatSecretSanta')">Chat with SecretSanta</button>
+    </div>
+
+    <!-- Wishlist Tabs -->
+    <div id="myWishlist" class="tabContent" style="display:none;">
+      <textarea id="myWishlistText" rows="5" cols="30"></textarea>
+      <button onclick="saveWishlist()">Save</button>
+    </div>
+
+    <div id="assignedWishlist" class="tabContent" style="display:none;">
+      <p id="assignedWishlistText"></p>
+    </div>
+
+    <!-- Chat Tabs -->
+    <div id="chatAssigned" class="tabContent" style="display:none;">
+      <h3>Chat with <span id="assignedChatNameHeader"></span></h3>
+      <div class="chatContainer" id="chatAssignedContainer"></div>
+      <input id="chatAssignedInput" type="text" placeholder="Type a message">
+      <button onclick="sendChat('assigned')">Send</button>
+    </div>
+
+    <div id="chatSecretSanta" class="tabContent" style="display:none;">
+      <h3>Chat with SecretSanta</h3>
+      <div class="chatContainer" id="chatSecretSantaContainer"></div>
+      <input id="chatSecretSantaInput" type="text" placeholder="Type a message">
+      <button onclick="sendChat('secretSanta')">Send</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
