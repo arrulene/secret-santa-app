@@ -1,145 +1,117 @@
-let user = {}, assigned = {};
-let backendURL = "https://script.google.com/macros/s/AKfycbyZDIi_bAfRVUx8wf0CSDlNZra7fF2maG04GgGQU0hSw7SZLmtluP13wcJte3c1KW4x/exec"; // Replace with your Apps Script web app URL
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyZDIi_bAfRVUx8wf0CSDlNZra7fF2maG04GgGQU0hSw7SZLmtluP13wcJte3c1KW4x/exec"; // replace with your Apps Script web app URL
 
-let chatIntervals = {};
-let lastMessages = { assigned: [], secretSanta: [] };
-let lastAssignedWishlist = "";
+let currentUser, assignedUser;
+let lastAssignedWishlist="";
 
 // --- Login ---
-function handleLogin() {
-  const email = document.getElementById("email").value.trim();
-  if(!email) { alert("Please enter your email."); return; }
-
+function handleLogin(){
+  const email=document.getElementById("email").value.trim();
+  const code=document.getElementById("code").value.trim();
+  if(!email||!code){alert("Enter both email and login code");return;}
   document.getElementById("loader").style.display="block";
 
-  fetch(`${backendURL}?action=readParticipants&email=${email}`)
+  fetch(`${BACKEND_URL}?action=loginUser&email=${email}&code=${code}`)
     .then(res=>res.json())
-    .then(data=>{
-      if(data.status==="error") { alert(data.message); return; }
-
-      user = data.user;
-      assigned = data.assigned;
-
+    .then(res=>{
       document.getElementById("loader").style.display="none";
-
-      if(user.FirstLogin==="TRUE") {
-        document.getElementById("loginScreen").style.display="none";
-        document.getElementById("assignedRevealName").textContent = assigned.Name;
-        document.getElementById("revealScreen").style.display="block";
-      } else {
-        continueToDashboard();
+      if(res.status==="ok"){
+        currentUser=res.user;
+        assignedUser=res.assigned;
+        loadDashboard();
+      }else{
+        alert(res.message);
       }
     });
 }
 
 // --- Dashboard ---
-function continueToDashboard() {
-  if(user.FirstLogin==="TRUE") {
-    fetch(backendURL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ type:"completeFirstLogin", email:user.Email })
-    }).then(()=>{ user.FirstLogin="FALSE"; });
-  }
-
-  document.getElementById("loginScreen").style.display="none";
-  document.getElementById("revealScreen").style.display="none";
+function loadDashboard(){
+  document.getElementById("loginBox").style.display="none";
   document.getElementById("dashboard").style.display="block";
+  document.getElementById("userName").textContent=currentUser.Name;
+  document.getElementById("myWishlist").value=currentUser.Wishlist||"";
+  document.getElementById("assignedName").textContent=assignedUser.Name;
 
-  document.getElementById("userName").textContent = user.Name;
-  document.getElementById("myWishlistText").value = user.Wishlist || "";
-  document.getElementById("assignedWishlistText").textContent = assigned.Wishlist || "";
+  fetchAssignedWishlist();
+  fetchChats();
 
-  document.getElementById("assignedChatName").textContent = assigned.Name;
-  document.getElementById("assignedChatNameHeader").textContent = assigned.Name;
-
-  startChatPolling('assigned', `${user.Email}_to_${assigned.Email}`);
-  startChatPolling('secretSanta', `${assigned.Email}_to_${user.Email}`);
-  startAssignedWishlistPolling();
-}
-
-// --- Tabs ---
-function showTab(tabId) {
-  document.querySelectorAll(".tabContent").forEach(el=>el.style.display="none");
-  document.getElementById(tabId).style.display="block";
+  setInterval(()=>{
+    fetchAssignedWishlist();
+    fetchChats();
+  },3000);
 }
 
 // --- Wishlist ---
-function saveWishlist() {
-  const text = document.getElementById("myWishlistText").value;
-  fetch(backendURL,{
+function saveWishlist(){
+  const wishlist=document.getElementById("myWishlist").value;
+  fetch(BACKEND_URL,{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ type:"wishlist", email:user.Email, wishlist:text })
-  }).then(()=>{ alert("Wishlist saved!"); });
+    body:JSON.stringify({type:"wishlist",email:currentUser.Email,wishlist})
+  }).then(res=>res.json())
+    .then(res=>{
+      if(res.status==="ok") alert("Wishlist saved");
+    });
 }
 
-function startAssignedWishlistPolling() {
-  setInterval(()=>{
-    fetch(`${backendURL}?action=readParticipants&email=${assigned.Email}`)
-      .then(res=>res.json())
-      .then(data=>{
-        const newWishlist = data.user.Wishlist || "";
-        const el = document.getElementById("assignedWishlistText");
-        if(newWishlist !== lastAssignedWishlist) {
-          lastAssignedWishlist = newWishlist;
-          el.textContent = newWishlist;
-          el.classList.add("highlight");
-          setTimeout(()=>el.classList.remove("highlight"),1000);
-        }
-      });
-  }, 5000);
+function fetchAssignedWishlist(){
+  fetch(`${BACKEND_URL}?action=readParticipants&email=${currentUser.Email}`)
+    .then(res=>res.json())
+    .then(res=>{
+      const assignedDiv=document.getElementById("assignedWishlist");
+      const newWishlist=res.Wishlist||"";
+
+      if(lastAssignedWishlist && lastAssignedWishlist!==newWishlist){
+        assignedDiv.classList.add("highlight");
+        setTimeout(()=>assignedDiv.classList.remove("highlight"),1000);
+      }
+      lastAssignedWishlist=newWishlist;
+      assignedDiv.textContent=newWishlist;
+    });
 }
 
-// --- Chat ---
-function startChatPolling(threadType, threadId) {
-  if(chatIntervals[threadType]) clearInterval(chatIntervals[threadType]);
-
-  function loadThread() {
-    fetch(`${backendURL}?action=readChat&thread=${threadId}`)
-      .then(res=>res.json())
-      .then(messages=>{
-        const container = document.getElementById(
-          threadType==='assigned' ? 'chatAssignedContainer':'chatSecretSantaContainer'
-        );
-
-        // Append new messages
-        const oldMessages = lastMessages[threadType];
-        const newMessages = messages.slice(oldMessages.length);
-        if(newMessages.length===0) return;
-
-        newMessages.forEach(m=>{
-          const p = document.createElement("p");
-          if(m.FromEmail === user.Email) p.textContent = `You: ${m.Message}`;
-          else p.textContent = `${threadType==='assigned'?assigned.Name:'SecretSanta'}: ${m.Message}`;
-          container.appendChild(p);
-        });
-        container.scrollTop = container.scrollHeight;
-        lastMessages[threadType] = messages;
+// --- Chats ---
+function fetchChats(){
+  fetch(`${BACKEND_URL}?action=readChat&thread=${currentUser.Email}_to_${assignedUser.Email}`)
+    .then(res=>res.json())
+    .then(res=>{
+      const chatDiv=document.getElementById("chatAssigned");
+      chatDiv.innerHTML="";
+      res.forEach(m=>{
+        const sender = m.FromEmail===currentUser.Email?"You":assignedUser.Name;
+        const msg=document.createElement("div");
+        msg.textContent=`${sender}: ${m.Message}`;
+        chatDiv.appendChild(msg);
       });
+      chatDiv.scrollTop=chatDiv.scrollHeight;
+    });
+
+  fetch(`${BACKEND_URL}?action=readChat&thread=${assignedUser.Email}_to_${currentUser.Email}`)
+    .then(res=>res.json())
+    .then(res=>{
+      const chatDiv=document.getElementById("chatSanta");
+      chatDiv.innerHTML="";
+      res.forEach(m=>{
+        const msg=document.createElement("div");
+        msg.textContent=`SecretSanta: ${m.Message}`;
+        chatDiv.appendChild(msg);
+      });
+      chatDiv.scrollTop=chatDiv.scrollHeight;
+    });
+}
+
+function sendChat(type){
+  let toEmail, msgInput;
+  if(type==="assigned"){
+    toEmail=assignedUser.Email;
+    msgInput=document.getElementById("chatAssignedInput");
+  } else {
+    toEmail=currentUser.AssignedTo;
+    msgInput=document.getElementById("chatSantaInput");
   }
-
-  loadThread();
-  chatIntervals[threadType] = setInterval(loadThread, 3000);
-}
-
-function sendChat(threadType) {
-  const inputId = threadType==='assigned'?'chatAssignedInput':'chatSecretSantaInput';
-  const threadId = threadType==='assigned'?`${user.Email}_to_${assigned.Email}`:`${assigned.Email}_to_${user.Email}`;
-  const message = document.getElementById(inputId).value.trim();
-  if(!message) return;
-
-  fetch(backendURL,{
+  const message=msgInput.value.trim(); if(!message) return;
+  msgInput.value="";
+  fetch(BACKEND_URL,{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      type:"chat",
-      from:user.Email,
-      to:assigned.Email,
-      message
-    })
-  }).then(()=>{
-    document.getElementById(inputId).value="";
-    startChatPolling(threadType, threadId);
-  });
+    body:JSON.stringify({type:"chat",from:currentUser.Email,to:toEmail,message})
+  }).then(fetchChats);
 }
