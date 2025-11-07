@@ -43,8 +43,10 @@ function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
 
-  // Check if first login
-  if (currentUser.FirstLogin) {
+  // Convert FirstLogin text to boolean
+  const isFirstLogin = currentUser.FirstLogin === "TRUE";
+
+  if (isFirstLogin) {
     // Show reveal screen
     revealScreen.style.display = "flex";
     loginBox.style.display = "none";
@@ -53,17 +55,15 @@ function loadDashboard() {
     // Populate assigned name
     assignedNameReveal.textContent = assignedUser.Name;
 
-    // Remove any old confetti
+    // Simple confetti effect
     document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
-
-    // Generate confetti
     for (let i = 0; i < 50; i++) {
       const confetti = document.createElement("div");
       confetti.classList.add("confetti-piece");
       confetti.style.position = "fixed";
       confetti.style.width = "10px";
       confetti.style.height = "10px";
-      confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+      confetti.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 60%)`;
       confetti.style.top = "-10px";
       confetti.style.left = `${Math.random() * 100}vw`;
       confetti.style.borderRadius = "50%";
@@ -74,20 +74,27 @@ function loadDashboard() {
 
     // Continue button
     continueBtn.onclick = () => {
+      // Hide reveal and show dashboard
       revealScreen.style.display = "none";
       dashboard.style.display = "block";
-      currentUser.FirstLogin = false; // mark as seen locally
 
-      // --- Persist first login complete in backend ---
-      fetch(`${proxyBase}/markFirstLoginComplete?email=${currentUser.Email}`)
-        .then(res => res.json())
-        .then(res => {
-          if (res.status !== "ok") console.warn("Failed to update first login status");
-        })
-        .catch(err => console.error(err));
+      // Mark first login as complete in the sheet
+      fetch(`${proxyBase}/markFirstLoginComplete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: currentUser.Email })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.status === "ok") {
+          currentUser.FirstLogin = false; // Update local state
+        }
+      });
 
+      // Initialize dashboard content
       initDashboardContent();
     };
+
 
   } else {
     loginBox.style.display = "none";
@@ -95,6 +102,7 @@ function loadDashboard() {
     initDashboardContent();
   }
 }
+
 
 
 // --- Initialize dashboard content after reveal or normal login ---
