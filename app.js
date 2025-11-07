@@ -36,7 +36,6 @@ function handleLogin() {
     });
 }
 
-// --- Dashboard with First-Login Reveal ---
 function loadDashboard() {
   const loginBox = document.getElementById("loginBox");
   const dashboard = document.getElementById("dashboard");
@@ -44,20 +43,21 @@ function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
 
+  // First hide all screens
+  loginBox.style.display = "none";
+  dashboard.style.display = "none";
+  revealScreen.style.display = "none";
+
   const isFirstLogin = currentUser.FirstLogin === "TRUE";
 
   if (isFirstLogin) {
     // Show reveal screen
     revealScreen.style.display = "flex";
-    loginBox.style.display = "none";
-    dashboard.style.display = "none";
-
-    // Populate assigned name
     assignedNameReveal.textContent = assignedUser.Name;
 
     // Confetti effect
     document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
-    for (let i = 0; i < 25; i++) { // reduced for mobile
+    for (let i = 0; i < 25; i++) {
       const confetti = document.createElement("div");
       confetti.classList.add("confetti-piece");
       confetti.style.top = "-10px";
@@ -76,7 +76,7 @@ function loadDashboard() {
       revealScreen.style.display = "none";
       dashboard.style.display = "block";
 
-      // Mark first login as complete
+      // Mark first login complete
       fetch(`${proxyBase}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,11 +94,12 @@ function loadDashboard() {
     };
 
   } else {
-    loginBox.style.display = "none";
+    // Show dashboard directly if not first login
     dashboard.style.display = "block";
     initDashboardContent();
   }
 }
+
 
 // --- Initialize dashboard content ---
 function initDashboardContent() {
