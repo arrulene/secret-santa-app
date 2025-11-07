@@ -4,11 +4,11 @@ body {
   margin: 0;
   padding: 0;
   text-align: center;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: linear-gradient(to bottom right, #d9312b, #f9d423);
+  background: linear-gradient(to bottom right, #d9312b, #1e9207);
   color: white;
   overflow-x: hidden;
 }
@@ -22,6 +22,7 @@ body {
   width: 90%;
   max-width: 400px;
   margin: auto;
+  box-sizing: border-box;
 }
 
 /* --- Reveal Screen --- */
@@ -32,7 +33,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, #f9d423, #d9312b);
+  background: linear-gradient(to bottom, #1e9207, #d9312b);
   color: white;
   z-index: 1000;
   display: flex;
@@ -40,29 +41,39 @@ body {
   justify-content: center;
   align-items: center;
   text-align: center;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
+  padding: 0 15px; /* padding for mobile */
 }
 
-#revealScreen h1 {
-  font-size: 2.5rem;
-  margin-bottom: 20px;
+#revealScreen .emoji {
+  font-size: 3rem;
+  margin-bottom: 15px;
   animation: pop 0.5s ease-out;
+}
+
+#revealScreen #assignedNameReveal {
+  font-size: 2rem;
+  color: #fff;
+  margin: 20px 0;
+  word-break: break-word;
 }
 
 #revealScreen button {
   margin-top: 20px;
   padding: 12px 25px;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   background: #fff;
   color: #d9312b;
   font-weight: bold;
   border-radius: 10px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
 }
 
 #revealScreen button:hover {
   transform: scale(1.05);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.4);
 }
 
 /* --- Confetti --- */
@@ -72,6 +83,7 @@ body {
   height: 10px;
   background-color: #fff;
   opacity: 0.8;
+  border-radius: 50%;
   animation: fall 3s linear infinite;
 }
 
@@ -137,4 +149,25 @@ button {
 .highlight {
   background-color: rgba(255, 255, 255, 0.4);
   transition: background-color 1s;
+}
+
+/* --- Responsive tweaks --- */
+@media (max-width: 500px) {
+  #revealScreen {
+    font-size: 1rem;
+    padding: 0 10px;
+  }
+  
+  #revealScreen h1 {
+    font-size: 2rem;
+  }
+
+  #revealScreen #assignedNameReveal {
+    font-size: 1.5rem;
+  }
+
+  #revealScreen button {
+    font-size: 1rem;
+    padding: 10px 20px;
+  }
 }
