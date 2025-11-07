@@ -4,23 +4,24 @@ let currentUser, assignedUser;
 let lastAssignedWishlist = "";
 
 // --- Login ---
-function handleLogin(){
+function handleLogin() {
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
-  if(!email || !code){ alert("Enter both email and login code"); return; }
+  if (!email || !code) { 
+    alert("Enter both email and login code"); 
+    return; 
+  }
 
   const loader = document.getElementById("loader");
-
-  // --- Lock scrolling while loader is visible --- // 🔹 CHANGE
-  document.body.style.overflow = "hidden";
+  document.body.style.overflow = "hidden"; // lock scrolling
   loader.style.display = "block";
 
-  fetch(`${proxyBase}/loginUser?email=${email}&code=${code}`) // 🔹 CHANGE: ensure path matches proxy
+  fetch(`${proxyBase}/loginUser?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`)
     .then(res => res.json())
     .then(res => {
-      loader.style.display = "none";           // hide loader
-      document.body.style.overflow = "auto";   // restore scrolling
-      if(res.status === "ok"){
+      loader.style.display = "none";
+      document.body.style.overflow = "auto";
+      if (res.status === "ok") {
         currentUser = res.user;
         assignedUser = res.assigned;
         loadDashboard();
@@ -30,7 +31,7 @@ function handleLogin(){
     })
     .catch(err => {
       loader.style.display = "none";
-      document.body.style.overflow = "auto";   // restore scrolling on error
+      document.body.style.overflow = "auto";
       alert("Error connecting to server: " + err.message);
     });
 }
@@ -43,7 +44,6 @@ function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
 
-  // Convert FirstLogin text to boolean
   const isFirstLogin = currentUser.FirstLogin === "TRUE";
 
   if (isFirstLogin) {
@@ -55,17 +55,17 @@ function loadDashboard() {
     // Populate assigned name
     assignedNameReveal.textContent = assignedUser.Name;
 
-    // Simple confetti effect
+    // Confetti effect
     document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 25; i++) { // reduced for mobile
       const confetti = document.createElement("div");
       confetti.classList.add("confetti-piece");
-      confetti.style.setProperty('--rand', Math.random()); // random hue
       confetti.style.top = "-10px";
       confetti.style.left = `${Math.random() * 100}vw`;
-      confetti.style.width = `${6 + Math.random() * 6}px`;  // 6px - 12px
+      confetti.style.width = `${6 + Math.random() * 6}px`;
       confetti.style.height = confetti.style.width;
       confetti.style.borderRadius = "50%";
+      confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
       confetti.style.zIndex = 10000;
       confetti.style.animationDuration = `${2 + Math.random() * 3}s`;
       document.body.appendChild(confetti);
@@ -73,27 +73,25 @@ function loadDashboard() {
 
     // Continue button
     continueBtn.onclick = () => {
-      // Hide reveal and show dashboard
       revealScreen.style.display = "none";
       dashboard.style.display = "block";
 
-      // Mark first login as complete in the sheet
-      fetch(`${proxyBase}/markFirstLoginComplete`, {
+      // Mark first login as complete
+      fetch(`${proxyBase}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: currentUser.Email })
+        body: JSON.stringify({ type: "firstLoginComplete", email: currentUser.Email })
       })
       .then(res => res.json())
       .then(res => {
         if (res.status === "ok") {
-          currentUser.FirstLogin = false; // Update local state
+          currentUser.FirstLogin = "FALSE";
         }
-      });
+      })
+      .catch(err => console.error("Error marking first login:", err));
 
-      // Initialize dashboard content
       initDashboardContent();
     };
-
 
   } else {
     loginBox.style.display = "none";
@@ -102,9 +100,7 @@ function loadDashboard() {
   }
 }
 
-
-
-// --- Initialize dashboard content after reveal or normal login ---
+// --- Initialize dashboard content ---
 function initDashboardContent() {
   document.getElementById("userName").textContent = currentUser.Name;
   document.getElementById("myWishlist").value = currentUser.Wishlist || "";
@@ -118,7 +114,7 @@ function initDashboardContent() {
     fetchChats();
   }, 3000);
 
-  // Enable Enter key to send chats
+  // Enter key for chats
   document.getElementById("chatAssignedInput").addEventListener("keydown", e => {
     if (e.key === "Enter") sendChat("assigned");
   });
@@ -127,24 +123,22 @@ function initDashboardContent() {
   });
 }
 
-
-
 // --- Wishlist ---
 function saveWishlist() {
   const wishlist = document.getElementById("myWishlist").value;
-  fetch(`${proxyBase}/writeWishlist`, { // 🔹 CHANGE: use proxyBase
+  fetch(`${proxyBase}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "wishlist", email: currentUser.Email, wishlist })
   })
-    .then(res => res.json())
-    .then(res => {
-      if (res.status === "ok") alert("Wishlist saved");
-    });
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "ok") alert("Wishlist saved");
+  });
 }
 
 function fetchAssignedWishlist() {
-  fetch(`${proxyBase}/readParticipants?email=${currentUser.Email}`) // 🔹 CHANGE: use proxyBase
+  fetch(`${proxyBase}/readParticipants?email=${currentUser.Email}`)
     .then(res => res.json())
     .then(res => {
       const assignedDiv = document.getElementById("assignedWishlist");
@@ -161,7 +155,8 @@ function fetchAssignedWishlist() {
 
 // --- Chats ---
 function fetchChats() {
-  fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`) // 🔹 CHANGE
+  // Assigned chat
+  fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
     .then(res => res.json())
     .then(res => {
       const chatDiv = document.getElementById("chatAssigned");
@@ -175,7 +170,8 @@ function fetchChats() {
       chatDiv.scrollTop = chatDiv.scrollHeight;
     });
 
-  fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`) // 🔹 CHANGE
+  // Secret Santa chat
+  fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
     .then(res => res.json())
     .then(res => {
       const chatDiv = document.getElementById("chatSanta");
@@ -201,7 +197,8 @@ function sendChat(type) {
   const message = msgInput.value.trim();
   if (!message) return;
   msgInput.value = "";
-  fetch(`${proxyBase}/writeChat`, { // 🔹 CHANGE: use proxyBase
+
+  fetch(`${proxyBase}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "chat", from: currentUser.Email, to: toEmail, message })
