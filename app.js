@@ -1,4 +1,4 @@
-const proxyBase = "http://localhost:3000/"; // proxy server URL
+const proxyBase = "http://localhost:3000"; // proxy server URL
 
 let currentUser, assignedUser;
 let lastAssignedWishlist = "";
@@ -15,7 +15,7 @@ function handleLogin(){
   document.body.style.overflow = "hidden";
   loader.style.display="block";
 
-  fetch(`${proxyBase}/loginUser?email=${email}&code=${code}`)
+  fetch(`${proxyBase}loginUser?email=${email}&code=${code}`)
     .then(res=>res.json())
     .then(res=>{
       loader.style.display="none";           // hide loader
