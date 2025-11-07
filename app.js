@@ -5,32 +5,32 @@ let lastAssignedWishlist = "";
 
 // --- Login ---
 function handleLogin(){
-  const email=document.getElementById("email").value.trim();
-  const code=document.getElementById("code").value.trim();
-  if(!email||!code){alert("Enter both email and login code");return;}
+  const email = document.getElementById("email").value.trim();
+  const code = document.getElementById("code").value.trim();
+  if(!email || !code){ alert("Enter both email and login code"); return; }
 
   const loader = document.getElementById("loader");
 
-  // --- Lock scrolling while loader is visible ---
+  // --- Lock scrolling while loader is visible --- // 🔹 CHANGE
   document.body.style.overflow = "hidden";
-  loader.style.display="block";
+  loader.style.display = "block";
 
-  fetch(`${proxyBase}/loginUser?email=${email}&code=${code}`)
-    .then(res=>res.json())
-    .then(res=>{
-      loader.style.display="none";           // hide loader
-      document.body.style.overflow="auto";   // --- Restore scrolling here ---
-      if(res.status==="ok"){
-        currentUser=res.user;
-        assignedUser=res.assigned;
+  fetch(`${proxyBase}/loginUser?email=${email}&code=${code}`) // 🔹 CHANGE: ensure path matches proxy
+    .then(res => res.json())
+    .then(res => {
+      loader.style.display = "none";           // hide loader
+      document.body.style.overflow = "auto";   // restore scrolling
+      if(res.status === "ok"){
+        currentUser = res.user;
+        assignedUser = res.assigned;
         loadDashboard();
       } else {
         alert(res.message);
       }
     })
     .catch(err => {
-      loader.style.display="none";
-      document.body.style.overflow="auto";   // --- Restore scrolling on error ---
+      loader.style.display = "none";
+      document.body.style.overflow = "auto";   // restore scrolling on error
       alert("Error connecting to server: " + err.message);
     });
 }
@@ -50,12 +50,20 @@ function loadDashboard() {
     fetchAssignedWishlist();
     fetchChats();
   }, 3000);
+
+  // --- Enable Enter key to send chats --- // 🔹 CHANGE
+  document.getElementById("chatAssignedInput").addEventListener("keydown", e => {
+    if(e.key === "Enter") sendChat("assigned");
+  });
+  document.getElementById("chatSantaInput").addEventListener("keydown", e => {
+    if(e.key === "Enter") sendChat("santa");
+  });
 }
 
 // --- Wishlist ---
 function saveWishlist() {
   const wishlist = document.getElementById("myWishlist").value;
-  fetch(`${proxyBase}/writeWishlist`, {
+  fetch(`${proxyBase}/writeWishlist`, { // 🔹 CHANGE: use proxyBase
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "wishlist", email: currentUser.Email, wishlist })
@@ -67,7 +75,7 @@ function saveWishlist() {
 }
 
 function fetchAssignedWishlist() {
-  fetch(`${proxyBase}/readParticipants?email=${currentUser.Email}`)
+  fetch(`${proxyBase}/readParticipants?email=${currentUser.Email}`) // 🔹 CHANGE: use proxyBase
     .then(res => res.json())
     .then(res => {
       const assignedDiv = document.getElementById("assignedWishlist");
@@ -84,7 +92,7 @@ function fetchAssignedWishlist() {
 
 // --- Chats ---
 function fetchChats() {
-  fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
+  fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`) // 🔹 CHANGE
     .then(res => res.json())
     .then(res => {
       const chatDiv = document.getElementById("chatAssigned");
@@ -98,7 +106,7 @@ function fetchChats() {
       chatDiv.scrollTop = chatDiv.scrollHeight;
     });
 
-  fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
+  fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`) // 🔹 CHANGE
     .then(res => res.json())
     .then(res => {
       const chatDiv = document.getElementById("chatSanta");
@@ -124,7 +132,7 @@ function sendChat(type) {
   const message = msgInput.value.trim();
   if (!message) return;
   msgInput.value = "";
-  fetch(`${proxyBase}/writeChat`, {
+  fetch(`${proxyBase}/writeChat`, { // 🔹 CHANGE: use proxyBase
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "chat", from: currentUser.Email, to: toEmail, message })
