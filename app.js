@@ -5,6 +5,7 @@ let lastAssignedWishlist = "";
 
 // --- Login ---
 function handleLogin() {
+  loginBox.style.display = "flex";
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
   if (!email || !code) { 
@@ -36,6 +37,7 @@ function handleLogin() {
     });
 }
 
+// REVEAL
 function loadDashboard() {
   const loginBox = document.getElementById("loginBox");
   const dashboard = document.getElementById("dashboard");
