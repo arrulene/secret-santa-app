@@ -2,10 +2,10 @@ const proxyBase = "http://localhost:3000"; // proxy server URL
 
 let currentUser, assignedUser;
 let lastAssignedWishlist = "";
+loginBox.style.display = "flex";
 
 // --- Login ---
 function handleLogin() {
-  loginBox.style.display = "flex";
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
   if (!email || !code) { 
