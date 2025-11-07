@@ -35,10 +35,59 @@ function handleLogin(){
     });
 }
 
-// --- Dashboard ---
+// --- Dashboard with First-Login Reveal ---
 function loadDashboard() {
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("dashboard").style.display = "block";
+  const loginBox = document.getElementById("loginBox");
+  const dashboard = document.getElementById("dashboard");
+  const revealScreen = document.getElementById("revealScreen");
+  const assignedNameReveal = document.getElementById("assignedNameReveal");
+  const continueBtn = document.getElementById("continueButton");
+
+  // Check if first login
+  if (currentUser.FirstLogin) {
+    // Show reveal screen
+    revealScreen.style.display = "flex";
+    loginBox.style.display = "none";
+    dashboard.style.display = "none";
+
+    // Populate assigned name
+    assignedNameReveal.textContent = assignedUser.Name;
+
+    // Simple confetti effect
+    document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
+    for (let i = 0; i < 50; i++) {
+      const confetti = document.createElement("div");
+      confetti.classList.add("confetti-piece");
+      confetti.style.position = "fixed";
+      confetti.style.width = "10px";
+      confetti.style.height = "10px";
+      confetti.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 60%)`;
+      confetti.style.top = "-10px";
+      confetti.style.left = `${Math.random() * 100}vw`;
+      confetti.style.borderRadius = "50%";
+      confetti.style.zIndex = 10000;
+      confetti.style.animation = `fall ${2 + Math.random() * 3}s linear forwards`;
+      document.body.appendChild(confetti);
+    }
+
+
+    // Continue button
+    continueBtn.onclick = () => {
+      revealScreen.style.display = "none";
+      dashboard.style.display = "block";
+      currentUser.FirstLogin = false; // mark as seen
+      initDashboardContent();
+    };
+
+  } else {
+    loginBox.style.display = "none";
+    dashboard.style.display = "block";
+    initDashboardContent();
+  }
+}
+
+// --- Initialize dashboard content after reveal or normal login ---
+function initDashboardContent() {
   document.getElementById("userName").textContent = currentUser.Name;
   document.getElementById("myWishlist").value = currentUser.Wishlist || "";
   document.getElementById("assignedName").textContent = assignedUser.Name;
@@ -51,14 +100,16 @@ function loadDashboard() {
     fetchChats();
   }, 3000);
 
-  // --- Enable Enter key to send chats --- // 🔹 CHANGE
+  // Enable Enter key to send chats
   document.getElementById("chatAssignedInput").addEventListener("keydown", e => {
-    if(e.key === "Enter") sendChat("assigned");
+    if (e.key === "Enter") sendChat("assigned");
   });
   document.getElementById("chatSantaInput").addEventListener("keydown", e => {
-    if(e.key === "Enter") sendChat("santa");
+    if (e.key === "Enter") sendChat("santa");
   });
 }
+
+
 
 // --- Wishlist ---
 function saveWishlist() {
