@@ -53,15 +53,17 @@ function loadDashboard() {
     // Populate assigned name
     assignedNameReveal.textContent = assignedUser.Name;
 
-    // Simple confetti effect
+    // Remove any old confetti
     document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
+
+    // Generate confetti
     for (let i = 0; i < 50; i++) {
       const confetti = document.createElement("div");
       confetti.classList.add("confetti-piece");
       confetti.style.position = "fixed";
       confetti.style.width = "10px";
       confetti.style.height = "10px";
-      confetti.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 60%)`;
+      confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
       confetti.style.top = "-10px";
       confetti.style.left = `${Math.random() * 100}vw`;
       confetti.style.borderRadius = "50%";
@@ -70,12 +72,20 @@ function loadDashboard() {
       document.body.appendChild(confetti);
     }
 
-
     // Continue button
     continueBtn.onclick = () => {
       revealScreen.style.display = "none";
       dashboard.style.display = "block";
-      currentUser.FirstLogin = false; // mark as seen
+      currentUser.FirstLogin = false; // mark as seen locally
+
+      // --- Persist first login complete in backend ---
+      fetch(`${proxyBase}/markFirstLoginComplete?email=${currentUser.Email}`)
+        .then(res => res.json())
+        .then(res => {
+          if (res.status !== "ok") console.warn("Failed to update first login status");
+        })
+        .catch(err => console.error(err));
+
       initDashboardContent();
     };
 
@@ -85,6 +95,7 @@ function loadDashboard() {
     initDashboardContent();
   }
 }
+
 
 // --- Initialize dashboard content after reveal or normal login ---
 function initDashboardContent() {
