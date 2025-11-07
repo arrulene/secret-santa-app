@@ -55,7 +55,7 @@ function loadDashboard() {
 // --- Wishlist ---
 function saveWishlist() {
   const wishlist = document.getElementById("myWishlist").value;
-  fetch(`${proxyBase}writeWishlist`, {
+  fetch(`${proxyBase}/writeWishlist`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "wishlist", email: currentUser.Email, wishlist })
@@ -67,7 +67,7 @@ function saveWishlist() {
 }
 
 function fetchAssignedWishlist() {
-  fetch(`${proxyBase}readParticipants?email=${currentUser.Email}`)
+  fetch(`${proxyBase}/readParticipants?email=${currentUser.Email}`)
     .then(res => res.json())
     .then(res => {
       const assignedDiv = document.getElementById("assignedWishlist");
@@ -84,7 +84,7 @@ function fetchAssignedWishlist() {
 
 // --- Chats ---
 function fetchChats() {
-  fetch(`${proxyBase}readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
+  fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
     .then(res => res.json())
     .then(res => {
       const chatDiv = document.getElementById("chatAssigned");
@@ -98,7 +98,7 @@ function fetchChats() {
       chatDiv.scrollTop = chatDiv.scrollHeight;
     });
 
-  fetch(`${proxyBase}readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
+  fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
     .then(res => res.json())
     .then(res => {
       const chatDiv = document.getElementById("chatSanta");
@@ -124,7 +124,7 @@ function sendChat(type) {
   const message = msgInput.value.trim();
   if (!message) return;
   msgInput.value = "";
-  fetch(`${proxyBase}writeChat`, {
+  fetch(`${proxyBase}/writeChat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "chat", from: currentUser.Email, to: toEmail, message })
