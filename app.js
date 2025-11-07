@@ -1,38 +1,54 @@
-const proxyBase = "http://localhost:3000"; // Proxy URL for local testing
+const proxyBase = "http://localhost:3000"; // proxy server URL
 
 let currentUser, assignedUser;
 let lastAssignedWishlist = "";
 
-window.onload = () => {
-  document.getElementById("loginBox").style.display = "flex";
-};
-
-// --- LOGIN ---
+// --- Login ---
 function handleLogin() {
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
-
-  if (!email || !code) {
-    alert("Enter both email and login code");
-    return;
+  if (!email || !code) { 
+    alert("Enter both email and login code"); 
+    return; 
   }
 
   const loader = document.getElementById("loader");
+  document.body.style.overflow = "hidden"; // lock scrolling
   loader.style.display = "block";
-  document.body.style.overflow = "hidden";
 
   fetch(`${proxyBase}/loginUser?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`)
     .then(res => res.json())
     .then(res => {
-      loader.style.display = "none";
-      document.body.style.overflow = "auto";
-      if (res.status === "ok") {
-        currentUser = res.user;
-        assignedUser = res.assigned;
-        loadDashboard();
-      } else {
+      if (res.status !== "ok") {
+        loader.style.display = "none";
+        document.body.style.overflow = "auto";
         alert(res.message);
+        return;
       }
+
+      currentUser = res.user;
+      assignedUser = res.assigned;
+
+      // Now fetch FirstLogin explicitly from server
+      fetch(`${proxyBase}/getUser?email=${encodeURIComponent(currentUser.Email)}`)
+        .then(res => res.json())
+        .then(userData => {
+          loader.style.display = "none";
+          document.body.style.overflow = "auto";
+          if (userData.FirstLogin !== undefined) {
+            currentUser.FirstLogin = userData.FirstLogin; // ensure we have the value
+          } else {
+            currentUser.FirstLogin = "FALSE"; // default fallback
+          }
+          loadDashboard();
+        })
+        .catch(err => {
+          loader.style.display = "none";
+          document.body.style.overflow = "auto";
+          console.error("Error fetching user data:", err);
+          currentUser.FirstLogin = "FALSE"; // fallback
+          loadDashboard();
+        });
     })
     .catch(err => {
       loader.style.display = "none";
@@ -41,7 +57,7 @@ function handleLogin() {
     });
 }
 
-// --- LOAD DASHBOARD / REVEAL ---
+// --- Dashboard / Reveal ---
 function loadDashboard() {
   const loginBox = document.getElementById("loginBox");
   const dashboard = document.getElementById("dashboard");
@@ -49,6 +65,7 @@ function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
 
+  // Hide everything first
   loginBox.style.display = "none";
   dashboard.style.display = "none";
   revealScreen.style.display = "none";
@@ -57,40 +74,45 @@ function loadDashboard() {
 
   if (isFirstLogin) {
     revealScreen.style.display = "flex";
-    setTimeout(() => revealScreen.classList.add("show"), 10);
     assignedNameReveal.textContent = assignedUser.Name;
 
+    // Confetti
     document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 25; i++) {
       const confetti = document.createElement("div");
       confetti.classList.add("confetti-piece");
-      confetti.style.setProperty("--rand", Math.random());
       confetti.style.top = "-10px";
       confetti.style.left = `${Math.random() * 100}vw`;
+      confetti.style.width = `${6 + Math.random() * 6}px`;
+      confetti.style.height = confetti.style.width;
+      confetti.style.borderRadius = "50%";
+      confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+      confetti.style.zIndex = 10000;
       confetti.style.animationDuration = `${2 + Math.random() * 3}s`;
       document.body.appendChild(confetti);
     }
 
     continueBtn.onclick = () => {
-      revealScreen.classList.remove("show");
-      setTimeout(() => {
-        revealScreen.style.display = "none";
-        dashboard.style.display = "block";
-      }, 500);
+      revealScreen.style.display = "none";
+      dashboard.style.display = "block";
 
-      fetch(`${proxyBase}/`, {
+      // Mark first login complete
+      fetch(`${proxyBase}/markFirstLoginComplete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "firstLoginComplete", email: currentUser.Email })
+        body: JSON.stringify({ email: currentUser.Email })
       })
       .then(res => res.json())
       .then(res => {
-        if (res.status === "ok") currentUser.FirstLogin = "FALSE";
+        if (res.status === "ok") {
+          currentUser.FirstLogin = "FALSE";
+        }
       })
       .catch(err => console.error("Error marking first login:", err));
 
       initDashboardContent();
     };
+
   } else {
     dashboard.style.display = "block";
     initDashboardContent();
