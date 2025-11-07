@@ -60,15 +60,14 @@ function loadDashboard() {
     for (let i = 0; i < 50; i++) {
       const confetti = document.createElement("div");
       confetti.classList.add("confetti-piece");
-      confetti.style.position = "fixed";
-      confetti.style.width = "10px";
-      confetti.style.height = "10px";
-      confetti.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 60%)`;
+      confetti.style.setProperty('--rand', Math.random()); // random hue
       confetti.style.top = "-10px";
       confetti.style.left = `${Math.random() * 100}vw`;
+      confetti.style.width = `${6 + Math.random() * 6}px`;  // 6px - 12px
+      confetti.style.height = confetti.style.width;
       confetti.style.borderRadius = "50%";
       confetti.style.zIndex = 10000;
-      confetti.style.animation = `fall ${2 + Math.random() * 3}s linear forwards`;
+      confetti.style.animationDuration = `${2 + Math.random() * 3}s`;
       document.body.appendChild(confetti);
     }
 

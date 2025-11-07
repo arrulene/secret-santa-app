@@ -43,112 +43,67 @@ body {
   text-align: center;
   font-size: 1.2rem;
   padding: 0 15px; /* padding for mobile */
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
+/* Emoji Pop */
 #revealScreen .emoji {
-  font-size: 3rem;
+  font-size: 4rem;
   margin-bottom: 15px;
-  animation: pop 0.5s ease-out;
+  animation: pop 0.6s ease-out;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
+/* Assigned name */
 #revealScreen #assignedNameReveal {
   font-size: 2rem;
   color: #fff;
   margin: 20px 0;
   word-break: break-word;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
+/* Continue button */
 #revealScreen button {
   margin-top: 20px;
   padding: 12px 25px;
-  font-size: 1.1rem;
-  background: #fff;
-  color: #d9312b;
+  font-size: 1.2rem;
+  background: linear-gradient(45deg, #27ae60, #2ecc71);
+  color: white;
   font-weight: bold;
   border-radius: 10px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-#revealScreen button:hover {
+#revealScreen button:hover,
+#revealScreen button:active {
   transform: scale(1.05);
-  box-shadow: 0 5px 10px rgba(0,0,0,0.4);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
 }
 
 /* --- Confetti --- */
 .confetti-piece {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background-color: #fff;
-  opacity: 0.8;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  opacity: 0.85;
   animation: fall 3s linear infinite;
+  background-color: hsl(calc(360 * var(--rand)), 70%, 60%);
 }
 
 @keyframes fall {
-  0% { transform: translateY(0) rotate(0deg); }
+  0% { transform: translateY(-10px) rotate(0deg); }
   100% { transform: translateY(100vh) rotate(360deg); }
 }
 
 @keyframes pop {
   0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
   100% { transform: scale(1); }
-}
-
-/* --- Inputs & Buttons --- */
-input, button, textarea {
-  margin: 8px 0;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  width: 80%;
-  font-size: 1rem;
-}
-
-button {
-  background: #fff;
-  color: #d9312b;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* --- Loader --- */
-#loader {
-  display: none;
-  margin-top: 20px;
-}
-
-.spinner {
-  border: 6px solid rgba(255, 255, 255, 0.2);
-  border-top: 6px solid #fff;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 1s linear infinite;
-  margin: auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* --- Chat Boxes --- */
-.chatBox {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 10px;
-  border-radius: 10px;
-  margin: 10px 0;
-  max-height: 150px;
-  overflow-y: auto;
-  text-align: left;
-}
-
-.highlight {
-  background-color: rgba(255, 255, 255, 0.4);
-  transition: background-color 1s;
 }
 
 /* --- Responsive tweaks --- */
@@ -158,8 +113,8 @@ button {
     padding: 0 10px;
   }
   
-  #revealScreen h1 {
-    font-size: 2rem;
+  #revealScreen .emoji {
+    font-size: 3rem;
   }
 
   #revealScreen #assignedNameReveal {
@@ -171,3 +126,4 @@ button {
     padding: 10px 20px;
   }
 }
+
