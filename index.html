@@ -30,11 +30,15 @@
 
 <h3>Chat with Assigned Person</h3>
 <div id="chatAssigned" class="chatBox"></div>
-<input id="chatAssignedInput" placeholder="Type a message"><button onclick="sendChat('assigned')">Send</button>
+<input id="chatAssignedInput" placeholder="Type a message"
+       onkeydown="if(event.key==='Enter'){sendChat('assigned')}">
+<button onclick="sendChat('assigned')">Send</button>
 
 <h3>Chat with Secret Santa</h3>
 <div id="chatSanta" class="chatBox"></div>
-<input id="chatSantaInput" placeholder="Type a message"><button onclick="sendChat('santa')">Send</button>
+<input id="chatSantaInput" placeholder="Type a message"
+       onkeydown="if(event.key==='Enter'){sendChat('santa')}">
+<button onclick="sendChat('santa')">Send</button>
 </div>
 
 <script src="app.js"></script>
