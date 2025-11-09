@@ -104,6 +104,8 @@ function loadDashboard() {
     }
 
     continueBtn.onclick = () => {
+      // Remove confetti
+      document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
       showScreen("dashboard");
 
       // Mark first login complete
@@ -114,7 +116,7 @@ function loadDashboard() {
       })
       .then(res => res.json())
       .then(res => {
-        if (res.status === "ok") currentUser.FirstLogin = "FALSE";
+        if (res.status === "ok") currentUser.FirstLogin = false;
       })
       .catch(err => console.error("Error marking first login:", err));
 
