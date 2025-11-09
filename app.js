@@ -15,7 +15,13 @@ function showScreen(screenId) {
   const screens = ["loginBox", "revealScreen", "dashboard"];
   screens.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = (id === screenId) ? "block" : "none";
+    if (!el) return;
+    if (id === screenId) {
+      // Reveal screen needs flex for proper layout
+      el.style.display = (id === "revealScreen") ? "flex" : "block";
+    } else {
+      el.style.display = "none";
+    }
   });
 }
 
