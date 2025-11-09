@@ -1,6 +1,24 @@
+/* === Warm Christmas Minimal Theme (with Gold Accents) === */
+
+/* --- COLOR VARIABLES --- */
+:root {
+  --color-bg-main: #474B41;
+  --color-bg-card: #4D5D45;
+  --color-bg-accent: #667256;
+  --color-text-main: #F3F3F3;
+  --color-text-secondary: #D1D1D1;
+  --color-btn-primary: #7A231D;
+  --color-btn-primary-hover: #B43B2B;
+  --color-border: #667256;
+  --color-accent-gold: #E8D7B8;
+  --radius: 12px;
+  --shadow-card: 0 4px 10px rgba(0, 0, 0, 0.25);
+  --transition: 0.25s ease-in-out;
+}
+
 /* --- General Body & Layout --- */
 body {
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Poppins', 'Segoe UI', sans-serif;
   margin: 0;
   padding: 0;
   text-align: center;
@@ -9,22 +27,23 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(to bottom right, #d9312b, #1e9207);
-  color: white;
+  background: linear-gradient(180deg, #474B41 0%, #4D5D45 100%);
+  color: var(--color-text-main);
   overflow-x: hidden;
   box-sizing: border-box;
 }
 
 /* --- Boxes --- */
 #loginBox, #dashboard, #revealScreen {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  background: var(--color-bg-card);
+  padding: 25px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   width: 90%;
   max-width: 400px;
   margin: auto;
   box-sizing: border-box;
+  border: 1px solid rgba(232, 215, 184, 0.15); /* subtle gold edge */
 }
 
 /* --- LOGIN SCREEN --- */
@@ -35,59 +54,71 @@ body {
   justify-content: center;
   gap: 15px;
   text-align: center;
-  padding: 25px;
 }
 
 #loginBox h1 {
-  font-size: 1.8rem;
-  color: #fff;
-  margin-bottom: 10px;
+  font-size: 2rem;
+  color: var(--color-accent-gold);
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+  text-shadow: 0 2px 6px rgba(232, 215, 184, 0.15);
 }
 
 #loginBox p {
-  color: #fff;
+  color: var(--color-text-secondary);
   margin-top: 0;
+  font-size: 0.95rem;
 }
 
 #loginBox input {
   width: 80%;
   max-width: 280px;
   padding: 10px;
-  border-radius: 8px;
-  border: none;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
   outline: none;
+  background-color: var(--color-bg-accent);
+  color: var(--color-text-main);
   font-size: 1rem;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: var(--transition);
 }
 
+#loginBox input:focus {
+  border-color: var(--color-accent-gold);
+  box-shadow: 0 0 0 3px rgba(232, 215, 184, 0.25);
+}
+
+/* --- Buttons --- */
 #loginBox button {
-  background: linear-gradient(45deg, #ff9800, #ff5722);
+  background: var(--color-btn-primary);
   border: none;
-  color: white;
+  color: #fff;
   padding: 10px 25px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: 1.1rem;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  transition: var(--transition);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
 }
 
 #loginBox button:hover {
+  background: var(--color-btn-primary-hover);
   transform: scale(1.05);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 0 12px rgba(232, 215, 184, 0.25); /* soft gold glow */
 }
 
+/* --- Loader --- */
 #loader {
   display: none;
   margin-top: 20px;
   font-size: 1.1rem;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .spinner {
-  border: 4px solid rgba(255,255,255,0.3);
-  border-top: 4px solid #fff;
+  border: 4px solid rgba(255,255,255,0.2);
+  border-top: 4px solid var(--color-text-main);
   border-radius: 50%;
   width: 30px;
   height: 30px;
@@ -108,8 +139,8 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, #1e9207, #d9312b);
-  color: white;
+  background: linear-gradient(180deg, #474B41 0%, #4D5D45 100%);
+  color: var(--color-text-main);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -137,7 +168,7 @@ body {
 
 #assignedNameReveal {
   font-size: 2rem;
-  color: #fff;
+  color: var(--color-accent-gold);
   margin: 20px 0;
   word-break: break-word;
   text-shadow: 0 2px 4px rgba(0,0,0,0.5);
@@ -146,19 +177,20 @@ body {
 #revealScreen button {
   margin-top: 20px;
   padding: 12px 25px;
-  font-size: 1.2rem;
-  background: linear-gradient(45deg, #27ae60, #2ecc71);
-  color: white;
+  font-size: 1.1rem;
+  background: var(--color-btn-primary);
+  color: #fff;
   font-weight: bold;
-  border-radius: 10px;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: var(--transition);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
 }
 
 #revealScreen button:hover {
+  background: var(--color-btn-primary-hover);
   transform: scale(1.05);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 0 12px rgba(232, 215, 184, 0.3); /* gold glow */
 }
 
 /* --- Confetti --- */
@@ -186,26 +218,36 @@ body {
 /* --- DASHBOARD --- */
 #dashboard {
   display: none;
-  background: rgba(255,255,255,0.1);
-  padding: 20px;
-  border-radius: 15px;
+  background: var(--color-bg-card);
+  padding: 25px;
+  border-radius: var(--radius);
   width: 90%;
   max-width: 600px;
   margin: 30px auto;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text-main);
+  border: 1px solid rgba(232, 215, 184, 0.15);
+}
+
+#dashboard h2 {
+  color: var(--color-accent-gold);
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  text-shadow: 0 1px 4px rgba(232, 215, 184, 0.15);
 }
 
 .chatBox {
-  border: 1px solid rgba(255,255,255,0.4);
-  background: rgba(255,255,255,0.15);
-  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-accent);
+  border-radius: var(--radius);
   padding: 10px;
   margin: 10px auto;
   width: 90%;
   max-height: 150px;
   overflow-y: auto;
   text-align: left;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* --- Responsive --- */

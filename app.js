@@ -2,6 +2,22 @@ const proxyBase = "http://localhost:3000"; // proxy server URL
 
 let currentUser, assignedUser;
 let lastAssignedWishlist = "";
+let lastAssignedChatsAssigned = [];
+let lastAssignedChatsSanta = [];
+
+// --- Startup: show loginBox on page load ---
+document.addEventListener("DOMContentLoaded", () => {
+  showScreen("loginBox");
+});
+
+// --- Helper: show one screen at a time ---
+function showScreen(screenId) {
+  const screens = ["loginBox", "revealScreen", "dashboard"];
+  screens.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (id === screenId) ? "block" : "none";
+  });
+}
 
 // --- Login ---
 function handleLogin() {
@@ -29,17 +45,12 @@ function handleLogin() {
       currentUser = res.user;
       assignedUser = res.assigned;
 
-      // Now fetch FirstLogin explicitly from server
       fetch(`${proxyBase}/getUser?email=${encodeURIComponent(currentUser.Email)}`)
         .then(res => res.json())
         .then(userData => {
           loader.style.display = "none";
           document.body.style.overflow = "auto";
-          if (userData.FirstLogin !== undefined) {
-            currentUser.FirstLogin = userData.FirstLogin; // ensure we have the value
-          } else {
-            currentUser.FirstLogin = "FALSE"; // default fallback
-          }
+          currentUser.FirstLogin = userData.FirstLogin || "FALSE";
           loadDashboard();
         })
         .catch(err => {
@@ -59,21 +70,13 @@ function handleLogin() {
 
 // --- Dashboard / Reveal ---
 function loadDashboard() {
-  const loginBox = document.getElementById("loginBox");
-  const dashboard = document.getElementById("dashboard");
-  const revealScreen = document.getElementById("revealScreen");
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
-
-  // Hide everything first
-  loginBox.style.display = "none";
-  dashboard.style.display = "none";
-  revealScreen.style.display = "none";
 
   const isFirstLogin = currentUser.FirstLogin === "TRUE";
 
   if (isFirstLogin) {
-    revealScreen.style.display = "flex";
+    showScreen("revealScreen");
     assignedNameReveal.textContent = assignedUser.Name;
 
     // Confetti
@@ -93,8 +96,7 @@ function loadDashboard() {
     }
 
     continueBtn.onclick = () => {
-      revealScreen.style.display = "none";
-      dashboard.style.display = "block";
+      showScreen("dashboard");
 
       // Mark first login complete
       fetch(`${proxyBase}/markFirstLoginComplete`, {
@@ -104,9 +106,7 @@ function loadDashboard() {
       })
       .then(res => res.json())
       .then(res => {
-        if (res.status === "ok") {
-          currentUser.FirstLogin = "FALSE";
-        }
+        if (res.status === "ok") currentUser.FirstLogin = "FALSE";
       })
       .catch(err => console.error("Error marking first login:", err));
 
@@ -114,27 +114,21 @@ function loadDashboard() {
     };
 
   } else {
-    dashboard.style.display = "block";
+    showScreen("dashboard");
     initDashboardContent();
   }
 }
 
-// --- DASHBOARD ---
+// --- Dashboard content ---
 function initDashboardContent() {
   document.getElementById("userName").textContent = currentUser.Name;
   document.getElementById("myWishlist").value = currentUser.Wishlist || "";
   document.getElementById("assignedName").textContent = assignedUser.Name;
 
-  fetchAssignedWishlist();
-  fetchChats();
-
-  setInterval(() => {
-    fetchAssignedWishlist();
-    fetchChats();
-  }, 3000);
+  startPolling();
 }
 
-// --- WISHLIST ---
+// --- Wishlist ---
 function saveWishlist() {
   const wishlist = document.getElementById("myWishlist").value;
   fetch(`${proxyBase}/`, {
@@ -155,45 +149,58 @@ function fetchAssignedWishlist() {
       const assignedDiv = document.getElementById("assignedWishlist");
       const newWishlist = res.assigned?.Wishlist || "";
 
-      if (lastAssignedWishlist && lastAssignedWishlist !== newWishlist) {
-        assignedDiv.classList.add("highlight");
-        setTimeout(() => assignedDiv.classList.remove("highlight"), 1000);
+      if (lastAssignedWishlist !== newWishlist) {
+        if (lastAssignedWishlist) {
+          assignedDiv.classList.add("highlight");
+          setTimeout(() => assignedDiv.classList.remove("highlight"), 1000);
+        }
+        assignedDiv.textContent = newWishlist;
+        lastAssignedWishlist = newWishlist;
       }
-      lastAssignedWishlist = newWishlist;
-      assignedDiv.textContent = newWishlist;
     });
 }
 
-// --- CHATS ---
+// --- Chats ---
 function fetchChats() {
+  // Assigned chat
   fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
     .then(res => res.json())
     .then(res => {
       const chatDiv = document.getElementById("chatAssigned");
-      chatDiv.innerHTML = "";
-      res.messages?.forEach(m => {
-        const sender = m.FromEmail === currentUser.Email ? "You" : assignedUser.Name;
-        const msg = document.createElement("div");
-        msg.textContent = `${sender}: ${m.Message}`;
-        chatDiv.appendChild(msg);
-      });
-      chatDiv.scrollTop = chatDiv.scrollHeight;
+      const messages = res.messages || [];
+      if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsAssigned)) {
+        chatDiv.innerHTML = "";
+        messages.forEach(m => {
+          const sender = m.FromEmail === currentUser.Email ? "You" : assignedUser.Name;
+          const msg = document.createElement("div");
+          msg.textContent = `${sender}: ${m.Message}`;
+          chatDiv.appendChild(msg);
+        });
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+        lastAssignedChatsAssigned = messages;
+      }
     });
 
+  // SecretSanta chat
   fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
     .then(res => res.json())
     .then(res => {
       const chatDiv = document.getElementById("chatSanta");
-      chatDiv.innerHTML = "";
-      res.messages?.forEach(m => {
-        const msg = document.createElement("div");
-        msg.textContent = `SecretSanta: ${m.Message}`;
-        chatDiv.appendChild(msg);
-      });
-      chatDiv.scrollTop = chatDiv.scrollHeight;
+      const messages = res.messages || [];
+      if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsSanta)) {
+        chatDiv.innerHTML = "";
+        messages.forEach(m => {
+          const msg = document.createElement("div");
+          msg.textContent = `SecretSanta: ${m.Message}`;
+          chatDiv.appendChild(msg);
+        });
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+        lastAssignedChatsSanta = messages;
+      }
     });
 }
 
+// --- Send Chat ---
 function sendChat(type) {
   let toEmail, msgInput;
   if (type === "assigned") {
@@ -212,4 +219,14 @@ function sendChat(type) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "chat", from: currentUser.Email, to: toEmail, message })
   }).then(fetchChats);
+}
+
+// --- Polling ---
+function startPolling() {
+  const dashboardVisible = document.getElementById("dashboard").style.display === "block";
+  if (dashboardVisible) {
+    fetchAssignedWishlist();
+    fetchChats();
+  }
+  setTimeout(startPolling, 3000);
 }
