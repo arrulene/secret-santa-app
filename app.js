@@ -79,7 +79,7 @@ function handleLogin() {
 }
 
 // --- Dashboard / Reveal ---
-function loadDashboard() {
+async function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
 
@@ -105,32 +105,37 @@ function loadDashboard() {
       document.body.appendChild(confetti);
     }
 
-    continueBtn.onclick = () => {
-      // Remove confetti
-      document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
+    continueBtn.onclick = async () => {
+      // Disable button to prevent multiple clicks
+      continueBtn.disabled = true;
+
+      // Remove confetti smoothly
+      const confettiPieces = document.querySelectorAll(".confetti-piece");
+      confettiPieces.forEach(el => el.remove());
+
       showScreen("dashboard");
 
-      // Mark first login complete
-      fetch(proxyBase, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "firstLoginComplete",  // <-- required for backend to recognize
-          email: currentUser.Email
-        })
-      })
-      .then(res => res.json())
-      .then(res => {
-        if (res.status === "ok") {
-          currentUser.FirstLogin = false; // update local value
+      try {
+        const res = await fetch(`${proxyBase}/markFirstLoginComplete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "firstLoginComplete",
+            email: currentUser.Email
+          })
+        });
+        const data = await res.json();
+        if (data.status === "ok") {
+          currentUser.FirstLogin = false;
           console.log("✅ First login marked complete for:", currentUser.Email);
         } else {
-          console.warn("⚠️ Failed to mark first login:", res);
+          console.warn("⚠️ Failed to mark first login:", data);
         }
-      })
-      .catch(err => console.error("Error marking first login:", err));
+      } catch (err) {
+        console.error("Error marking first login:", err);
+      }
 
-      // Continue loading dashboard content
+      // Load dashboard content
       initDashboardContent();
     };
 
