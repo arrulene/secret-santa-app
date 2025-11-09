@@ -12,17 +12,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // --- Helper: show one screen at a time ---
 function showScreen(screenId) {
-  const screens = ["loginBox", "revealScreen", "dashboard"];
+  const screens = ["loginBox","revealScreen","dashboard"];
   screens.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     if (id === screenId) {
-      el.style.display = (id === "revealScreen") ? "flex" : "block";
+      // reveal screen needs flex
+      if (id === "revealScreen") el.classList.add("show");
+      el.style.display = id === "revealScreen" ? "flex" : "block";
     } else {
+      el.classList.remove("show");
       el.style.display = "none";
     }
   });
 }
+
 
 
 // --- Login ---
