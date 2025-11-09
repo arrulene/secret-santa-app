@@ -17,13 +17,15 @@ function showScreen(screenId) {
     const el = document.getElementById(id);
     if (!el) return;
     if (id === screenId) {
-      // Reveal screen needs flex for proper layout
       el.style.display = (id === "revealScreen") ? "flex" : "block";
+      if(id === "revealScreen") el.classList.add("show");
     } else {
       el.style.display = "none";
+      if(id === "revealScreen") el.classList.remove("show");
     }
   });
 }
+
 
 // --- Login ---
 function handleLogin() {
