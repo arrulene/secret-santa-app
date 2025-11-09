@@ -50,14 +50,14 @@ function handleLogin() {
         .then(userData => {
           loader.style.display = "none";
           document.body.style.overflow = "auto";
-          currentUser.FirstLogin = userData.FirstLogin || "FALSE";
+          currentUser.FirstLogin = userData.FirstLogin || false;
           loadDashboard();
         })
         .catch(err => {
           loader.style.display = "none";
           document.body.style.overflow = "auto";
           console.error("Error fetching user data:", err);
-          currentUser.FirstLogin = "FALSE"; // fallback
+          currentUser.FirstLogin = false; // fallback
           loadDashboard();
         });
     })
@@ -73,7 +73,7 @@ function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
 
-  const isFirstLogin = currentUser.FirstLogin === "TRUE";
+  const isFirstLogin = currentUser.FirstLogin === true;
 
   if (isFirstLogin) {
     showScreen("revealScreen");
