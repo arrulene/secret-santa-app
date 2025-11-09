@@ -18,10 +18,8 @@ function showScreen(screenId) {
     if (!el) return;
     if (id === screenId) {
       el.style.display = (id === "revealScreen") ? "flex" : "block";
-      if(id === "revealScreen") el.classList.add("show");
     } else {
       el.style.display = "none";
-      if(id === "revealScreen") el.classList.remove("show");
     }
   });
 }
