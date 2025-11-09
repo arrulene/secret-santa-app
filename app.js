@@ -111,17 +111,26 @@ function loadDashboard() {
       showScreen("dashboard");
 
       // Mark first login complete
-      fetch(`${proxyBase}/markFirstLoginComplete`, {
+      fetch(proxyBase, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: currentUser.Email })
+        body: JSON.stringify({
+          type: "firstLoginComplete",  // <-- required for backend to recognize
+          email: currentUser.Email
+        })
       })
       .then(res => res.json())
       .then(res => {
-        if (res.status === "ok") currentUser.FirstLogin = false;
+        if (res.status === "ok") {
+          currentUser.FirstLogin = false; // update local value
+          console.log("✅ First login marked complete for:", currentUser.Email);
+        } else {
+          console.warn("⚠️ Failed to mark first login:", res);
+        }
       })
       .catch(err => console.error("Error marking first login:", err));
 
+      // Continue loading dashboard content
       initDashboardContent();
     };
 
