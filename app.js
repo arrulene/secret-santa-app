@@ -192,68 +192,81 @@ function fetchAssignedWishlist() {
     });
 }
 
-// --- Chats ---
+// --- Fetch & Render Chats ---
 function fetchChats() {
-// Assigned chat
-fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
-  .then(res => res.json())
-  .then(res => {
-    const chatDiv = document.getElementById("chatAssigned");
-    const messages = res.messages || [];
-    if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsAssigned)) {
-      chatDiv.innerHTML = "";
-      messages.forEach(m => {
-        const msg = document.createElement("div");
-        const isMe = m.FromEmail === currentUser.Email;
-        msg.classList.add("message", isMe ? "sent" : "received");
-        msg.textContent = m.Message;
-        chatDiv.appendChild(msg);
-      });
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-      lastAssignedChatsAssigned = messages;
-    }
-  });
+  // Assigned Person Chat
+  fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
+    .then(res => res.json())
+    .then(res => {
+      const chatDiv = document.getElementById("chatAssigned");
+      const messages = res.messages || [];
+      if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsAssigned)) {
+        chatDiv.innerHTML = ""; // clear old messages
+        messages.forEach(m => {
+          const msg = document.createElement("div");
+          const isMe = m.FromEmail === currentUser.Email;
+          msg.classList.add("message", isMe ? "sent" : "received");
+          msg.textContent = m.Message;
+          chatDiv.appendChild(msg);
+        });
+        chatDiv.scrollTop = chatDiv.scrollHeight; // scroll to bottom
+        lastAssignedChatsAssigned = messages;
+      }
+    });
 
-// SecretSanta chat
-fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
-  .then(res => res.json())
-  .then(res => {
-    const chatDiv = document.getElementById("chatSanta");
-    const messages = res.messages || [];
-    if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsSanta)) {
-      chatDiv.innerHTML = "";
-      messages.forEach(m => {
-        const msg = document.createElement("div");
-        msg.classList.add("message", "received"); // always received from SecretSanta
-        msg.textContent = m.Message;
-        chatDiv.appendChild(msg);
-      });
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-      lastAssignedChatsSanta = messages;
-    }
-  });
-
+  // Secret Santa Chat
+  fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
+    .then(res => res.json())
+    .then(res => {
+      const chatDiv = document.getElementById("chatSanta");
+      const messages = res.messages || [];
+      if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsSanta)) {
+        chatDiv.innerHTML = "";
+        messages.forEach(m => {
+          const isMe = m.FromEmail === currentUser.Email; // in case current user can also reply
+          const msg = document.createElement("div");
+          msg.classList.add("message", isMe ? "sent" : "received");
+          msg.textContent = m.Message;
+          chatDiv.appendChild(msg);
+        });
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+        lastAssignedChatsSanta = messages;
+      }
+    });
 }
 
 // --- Send Chat ---
 function sendChat(type) {
-  let toEmail, msgInput;
+  let toEmail, msgInput, chatDiv;
   if (type === "assigned") {
     toEmail = assignedUser.Email;
     msgInput = document.getElementById("chatAssignedInput");
-  } else {
-    toEmail = currentUser.AssignedTo;
+    chatDiv = document.getElementById("chatAssigned");
+  } else if (type === "santa") {
+    toEmail = currentUser.AssignedTo || assignedUser.Email; // your Secret Santa
     msgInput = document.getElementById("chatSantaInput");
+    chatDiv = document.getElementById("chatSanta");
   }
-  const message = msgInput.value.trim();
-  if (!message) return;
+
+  const messageText = msgInput.value.trim();
+  if (!messageText) return;
   msgInput.value = "";
 
+  // Optimistically add message to chat (so it appears instantly)
+  const msgDiv = document.createElement("div");
+  msgDiv.classList.add("message", "sent");
+  msgDiv.textContent = messageText;
+  chatDiv.appendChild(msgDiv);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+
+  // Send to backend
   fetch(`${proxyBase}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "chat", from: currentUser.Email, to: toEmail, message })
-  }).then(fetchChats);
+    body: JSON.stringify({ type: "chat", from: currentUser.Email, to: toEmail, message: messageText })
+  })
+  .then(fetchChats) // refresh chats from backend to get any new messages
+  .catch(err => console.error("Error sending chat:", err));
 }
 
 // --- Polling ---
