@@ -242,6 +242,15 @@ body {
   box-shadow: var(--shadow-card);
   color: var(--color-text-main);
   border: 1px solid rgba(232, 215, 184, 0.15);
+
+  opacity: 0;
+  transform: translate(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+#dashboard.show {
+  opacity: 1;
+  transform: translate(0);
 }
 
 #dashboard h2 {
@@ -252,6 +261,56 @@ body {
   text-shadow: 0 1px 4px rgba(232, 215, 184, 0.15);
 }
 
+#dashboard h3 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  color: var(--color-text-secondary);
+  text-align: left;
+}
+
+/* --- Textareas & Inputs --- */
+#dashboard textarea,
+#dashboard input {
+  width: 90%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  outline: none;
+  background-color: var(--color-bg-accent);
+  color: var(--color-text-main);
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: var(--transition);
+}
+
+#dashboard textarea:focus,
+#dashboard input:focus {
+  border-color: var(--color-accent-gold);
+  box-shadow: 0 0 0 3px rgba(232, 215, 184, 0.25);
+}
+
+/* --- Buttons --- */
+#dashboard button {
+  background: var(--color-btn-primary);
+  border: none;
+  color: #fff;
+  padding: 10px 25px;
+  border-radius: var(--radius);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  margin-top: 5px;
+}
+
+#dashboard button:hover {
+  background: var(--color-btn-primary-hover);
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(232, 215, 184, 0.25); /* soft gold glow */
+}
+
+/* --- Chat Box Container --- */
 .chatBox {
   border: 1px solid var(--color-border);
   background: var(--color-bg-accent);
@@ -259,11 +318,70 @@ body {
   padding: 10px;
   margin: 10px auto;
   width: 90%;
-  max-height: 150px;
+  max-height: 200px;
   overflow-y: auto;
   text-align: left;
   color: var(--color-text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
+
+/* --- Chat Bubbles --- */
+.message {
+  max-width: 75%;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  word-break: break-word;
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+/* Sent messages (current user) */
+.message.sent {
+  align-self: flex-end;
+  background-color: var(--color-btn-primary);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+/* Received messages (other person / Secret Santa) */
+.message.received {
+  align-self: flex-start;
+  background-color: var(--color-bg-card);
+  color: var(--color-text-main);
+  border-bottom-left-radius: 2px;
+}
+
+/* --- Responsive --- */
+@media (max-width: 500px) {
+  #dashboard {
+    padding: 20px;
+  }
+
+  #dashboard h2 {
+    font-size: 1.4rem;
+  }
+
+  #dashboard h3 {
+    font-size: 1rem;
+  }
+
+  #dashboard textarea,
+  #dashboard input {
+    font-size: 0.95rem;
+  }
+
+  #dashboard button {
+    font-size: 1rem;
+    padding: 8px 20px;
+  }
+
+  .chatBox {
+    max-height: 150px;
+  }
+}
+
 
 /* --- Responsive --- */
 @media (max-width: 500px) {
