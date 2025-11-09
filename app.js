@@ -50,7 +50,7 @@ function handleLogin() {
         .then(userData => {
           loader.style.display = "none";
           document.body.style.overflow = "auto";
-          currentUser.FirstLogin = userData.FirstLogin || false;
+          //currentUser.FirstLogin = userData.FirstLogin || false;
           loadDashboard();
         })
         .catch(err => {
