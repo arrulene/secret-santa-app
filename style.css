@@ -150,32 +150,28 @@ body {
 }
 
 /* --- REVEAL SCREEN --- */
+/* base: hidden card that matches other screens */
 #revealScreen {
-  display: flex;
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
+  display: none;                 /* hidden by default */
   background: linear-gradient(180deg, #474B41 0%, #4D5D45 100%);
   color: var(--color-text-main);
-  z-index: 1000;
-
+  z-index: 10;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-
-  font-size: 1.2rem;
-  padding: 0 15px;
-  overflow: hidden;
-  box-sizing: border-box;
-  opacity: 0;
-  transition: opacity 0.6s ease;
+  padding: 40px 15px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  max-width: 600px;
+  margin: auto;
 }
 
+/* show state: becomes a flex container and visible */
 #revealScreen.show {
-  opacity: 1;
+  display: flex;
 }
+
 
 #revealScreen .emoji {
   font-size: 4rem;
