@@ -12,17 +12,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // --- Helper: show one screen at a time ---
 function showScreen(screenId) {
-  const screens = ["loginBox","revealScreen","dashboard"];
+  const screens = ["loginBox", "revealScreen", "dashboard"];
   screens.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
+
     if (id === screenId) {
-      // reveal screen needs flex
-      if (id === "revealScreen") el.classList.add("show");
-      el.style.display = id === "revealScreen" ? "flex" : "block";
+      // Special handling for dashboard to trigger smooth entrance
+      if (id === "dashboard") {
+        el.style.display = "block"; 
+        setTimeout(() => el.classList.add("show"), 20); // small delay to allow transition
+      } else {
+        el.style.display = (id === "revealScreen") ? "flex" : "block";
+        el.classList.remove("show"); // reset in case dashboard is hidden
+      }
     } else {
-      el.classList.remove("show");
       el.style.display = "none";
+      el.classList.remove("show");
     }
   });
 }
@@ -188,42 +194,45 @@ function fetchAssignedWishlist() {
 
 // --- Chats ---
 function fetchChats() {
-  // Assigned chat
-  fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
-    .then(res => res.json())
-    .then(res => {
-      const chatDiv = document.getElementById("chatAssigned");
-      const messages = res.messages || [];
-      if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsAssigned)) {
-        chatDiv.innerHTML = "";
-        messages.forEach(m => {
-          const sender = m.FromEmail === currentUser.Email ? "You" : assignedUser.Name;
-          const msg = document.createElement("div");
-          msg.textContent = `${sender}: ${m.Message}`;
-          chatDiv.appendChild(msg);
-        });
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-        lastAssignedChatsAssigned = messages;
-      }
-    });
+// Assigned chat
+fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
+  .then(res => res.json())
+  .then(res => {
+    const chatDiv = document.getElementById("chatAssigned");
+    const messages = res.messages || [];
+    if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsAssigned)) {
+      chatDiv.innerHTML = "";
+      messages.forEach(m => {
+        const msg = document.createElement("div");
+        const isMe = m.FromEmail === currentUser.Email;
+        msg.classList.add("message", isMe ? "sent" : "received");
+        msg.textContent = m.Message;
+        chatDiv.appendChild(msg);
+      });
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+      lastAssignedChatsAssigned = messages;
+    }
+  });
 
-  // SecretSanta chat
-  fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
-    .then(res => res.json())
-    .then(res => {
-      const chatDiv = document.getElementById("chatSanta");
-      const messages = res.messages || [];
-      if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsSanta)) {
-        chatDiv.innerHTML = "";
-        messages.forEach(m => {
-          const msg = document.createElement("div");
-          msg.textContent = `SecretSanta: ${m.Message}`;
-          chatDiv.appendChild(msg);
-        });
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-        lastAssignedChatsSanta = messages;
-      }
-    });
+// SecretSanta chat
+fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
+  .then(res => res.json())
+  .then(res => {
+    const chatDiv = document.getElementById("chatSanta");
+    const messages = res.messages || [];
+    if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsSanta)) {
+      chatDiv.innerHTML = "";
+      messages.forEach(m => {
+        const msg = document.createElement("div");
+        msg.classList.add("message", "received"); // always received from SecretSanta
+        msg.textContent = m.Message;
+        chatDiv.appendChild(msg);
+      });
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+      lastAssignedChatsSanta = messages;
+    }
+  });
+
 }
 
 // --- Send Chat ---
