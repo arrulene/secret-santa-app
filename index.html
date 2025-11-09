@@ -28,27 +28,29 @@
   <button id="continueButton">Continue</button>
 </div>
 
-<div id="dashboard" style="display:none;">
+<div id="dashboard" class="dashboard-container">
   <h2>Welcome, <span id="userName"></span>!</h2>
 
-  <!-- Your Wishlist -->
-  <div class="dashboard-section">
+  <!-- My Wishlist -->
+  <div class="card-section">
     <h3>Your Wishlist</h3>
-    <textarea id="myWishlist" rows="3"></textarea>
-    <button onclick="saveWishlist()">Save Wishlist</button>
+    <div class="wishlist-container">
+      <textarea id="myWishlist" rows="3" placeholder="Write your wishlist here..."></textarea>
+      <button onclick="saveWishlist()">Save</button>
+    </div>
   </div>
 
-  <!-- Assigned Person Wishlist -->
-  <div class="dashboard-section">
+  <!-- Assigned Person's Wishlist -->
+  <div class="card-section">
     <h3>Assigned Person's Wishlist: <span id="assignedName"></span></h3>
-    <div id="assignedWishlist" class="chatBox"></div>
+    <div id="assignedWishlist" class="wishlist-display"></div>
   </div>
 
   <!-- Chat with Assigned Person -->
-  <div class="dashboard-section">
+  <div class="card-section">
     <h3>Chat with Assigned Person</h3>
     <div id="chatAssigned" class="chatBox"></div>
-    <div class="chat-input-row">
+    <div class="chat-input-container">
       <input id="chatAssignedInput" placeholder="Type a message"
              onkeydown="if(event.key==='Enter'){sendChat('assigned')}">
       <button onclick="sendChat('assigned')">Send</button>
@@ -56,17 +58,16 @@
   </div>
 
   <!-- Chat with Secret Santa -->
-  <div class="dashboard-section">
+  <div class="card-section">
     <h3>Chat with Secret Santa</h3>
     <div id="chatSanta" class="chatBox"></div>
-    <div class="chat-input-row">
+    <div class="chat-input-container">
       <input id="chatSantaInput" placeholder="Type a message"
              onkeydown="if(event.key==='Enter'){sendChat('santa')}">
       <button onclick="sendChat('santa')">Send</button>
     </div>
   </div>
 </div>
-
 
 <script src="app.js"></script>
 </body>
