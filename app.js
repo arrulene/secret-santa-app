@@ -165,7 +165,7 @@ function initDashboardContent() {
 // --- Wishlist ---
 function saveWishlist() {
   const wishlist = document.getElementById("myWishlist").value;
-  fetch(`${proxyBase}/`, {
+  fetch(`${proxyBase}/writeWishlist`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "wishlist", email: currentUser.Email, wishlist })
@@ -239,13 +239,15 @@ function fetchChats() {
 
 // --- Send Chat ---
 function sendChat(type) {
-  let toEmail, msgInput, chatDiv;
+  let toEmail, msgInput, chatDiv; fromEmail
   if (type === "assigned") {
     toEmail = assignedUser.Email;
+    fromEmail = currentUser.Email;
     msgInput = document.getElementById("chatAssignedInput");
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
     toEmail = currentUser.AssignedTo || assignedUser.Email; // your Secret Santa
+    fromEmail = currentUser.Email
     msgInput = document.getElementById("chatSantaInput");
     chatDiv = document.getElementById("chatSanta");
   }
@@ -262,10 +264,10 @@ function sendChat(type) {
   chatDiv.scrollTop = chatDiv.scrollHeight;
 
   // Send to backend
-  fetch(`${proxyBase}/`, {
+  fetch(`${proxyBase}/writeChat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "chat", from: currentUser.Email, to: toEmail, message: messageText })
+    body: JSON.stringify({ threadID: fromEmail + "_to_" + toEmail, from: currentUser.Email, to: toEmail, message: messageText })
   })
   .then(fetchChats) // refresh chats from backend to get any new messages
   .catch(err => console.error("Error sending chat:", err));
