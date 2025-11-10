@@ -156,6 +156,8 @@ function initDashboardContent() {
   document.getElementById("userName").textContent = currentUser.Name;
   document.getElementById("myWishlist").value = currentUser.Wishlist || "";
   document.getElementById("assignedName").textContent = assignedUser.Name;
+  document.getElementById("assignedNameWishlist").textContent = assignedUser.Name;
+  document.getElementById("assignedNameChat").textContent = assignedUser.Name;
 
   startPolling();
 }
