@@ -172,7 +172,7 @@ function saveWishlist() {
   })
   .then(res => res.json())
   .then(res => {
-    if (res.status === "ok") alert("Wishlist saved!");
+    if (res.status === "ok"); // alert("Wishlist saved!");
   });
 }
 
@@ -267,7 +267,7 @@ function sendChat(type) {
   fetch(`${proxyBase}/writeChat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ threadID: fromEmail + "_to_" + toEmail, from: currentUser.Email, to: toEmail, message: messageText })
+    body: JSON.stringify({from: currentUser.Email, to: toEmail, message: messageText })
   })
   .then(fetchChats) // refresh chats from backend to get any new messages
   .catch(err => console.error("Error sending chat:", err));
