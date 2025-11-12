@@ -5,6 +5,7 @@ let lastAssignedWishlist = "";
 let lastAssignedChatsAssigned = [];
 let lastAssignedChatsSanta = [];
 
+
 // --- Startup: show loginBox on page load ---
 document.addEventListener("DOMContentLoaded", () => {
   showScreen("loginBox");
@@ -120,8 +121,6 @@ async function loadDashboard() {
       const confettiPieces = document.querySelectorAll(".confetti-piece");
       confettiPieces.forEach(el => el.remove());
 
-      showScreen("dashboard");
-
       try {
         const res = await fetch(`${proxyBase}/markFirstLoginComplete`, {
           method: "POST",
@@ -142,13 +141,11 @@ async function loadDashboard() {
         console.error("Error marking first login:", err);
       }
 
-      // Load dashboard content
-      initDashboardContent();
+      initDashboard();
     };
 
   } else {
-    showScreen("dashboard");
-    initDashboardContent();
+    initDashboard();
   }
 }
 
@@ -159,8 +156,31 @@ function initDashboardContent() {
   document.getElementById("assignedName").textContent = assignedUser.Name;
   document.getElementById("assignedNameWishlist").textContent = assignedUser.Name;
   document.getElementById("assignedNameChat").textContent = assignedUser.Name;
+}
 
-  startPolling();
+async function initDashboard() {
+  document.getElementById("dashboardLoading").style.display="flex";
+  document.getElementById("dashboard").style.display="none";
+
+  try {
+    // Fetch user data and setup dashboard content
+    await initDashboardContent();
+
+    await Promise.all([
+      fetchFullChatHistory("assigned"),
+      fetchFullChatHistory("santa")
+    ]);
+
+    startPolling("assigned");
+    startPolling("santa")
+
+    document.getElementById("dashboardLoading").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+
+  } catch (err) {
+    console.error("Error initializing dashboard:", err);
+    document.getElementById("dashboardLoading").innerHTML = "<p>Failed to load dashboard.</p>";
+  }
 }
 
 // --- Wishlist ---
@@ -195,47 +215,99 @@ function fetchAssignedWishlist() {
     });
 }
 
+let lastMessageTimestamps = {
+  assigned: 0,
+  santa :0,
+}
+
 // --- Fetch & Render Chats ---
-function fetchChats() {
-  // Assigned Person Chat
-  fetch(`${proxyBase}/readChat?thread=${currentUser.Email}_to_${assignedUser.Email}`)
-    .then(res => res.json())
-    .then(res => {
-      const chatDiv = document.getElementById("chatAssigned");
-      const messages = res.messages || [];
-      if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsAssigned)) {
-        chatDiv.innerHTML = ""; // clear old messages
-        messages.forEach(m => {
-          const msg = document.createElement("div");
-          const isMe = m.FromEmail === currentUser.Email;
-          msg.classList.add("message", isMe ? "sent" : "received");
-          msg.textContent = m.Message;
-          chatDiv.appendChild(msg);
-        });
-        chatDiv.scrollTop = chatDiv.scrollHeight; // scroll to bottom
-        lastAssignedChatsAssigned = messages;
-      }
+async function fetchFullChatHistory(type) {
+  let fromEmail, toEmail, chatDiv;
+
+  if (type === "assigned") {
+    fromEmail = currentUser.Email;
+    toEmail = assignedUser.Email;
+    chatDiv = document.getElementById("chatAssigned");
+  } else if (type === "santa") {
+    fromEmail = currentUser.Email;
+    toEmail = currentUser.SantaEmail; // use Santa column
+    chatDiv = document.getElementById("chatSanta");
+  }
+
+  const threadA = `${fromEmail}_to_${toEmail}`;
+  const threadB = `${toEmail}_to_${fromEmail}`;
+
+  try {
+    const [resA, resB] = await Promise.all([
+      fetch(`${proxyBase}/readChat?thread=${threadA}`).then(r => r.json()),
+      fetch(`${proxyBase}/readChat?thread=${threadB}`).then(r => r.json())
+    ]);
+
+    let messages = [...(resA.messages || []), ...(resB.messages || [])];
+    messages.sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
+
+    chatDiv.innerHTML = "";
+    messages.forEach(m => {
+      const msg = document.createElement("div");
+      const isMe = m.FromEmail === currentUser.Email;
+      msg.classList.add("message", isMe ? "sent" : "received");
+      msg.textContent = m.Message;
+      chatDiv.appendChild(msg);
+    });
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+
+    if (messages.length > 0) {
+      lastMessageTimestamps[type] = new Date(messages[messages.length - 1].Timestamp).getTime();
+    }
+
+  } catch (err) {
+    console.error("Error fetching full chat history:", err);
+  }
+}
+
+async function fetchNewMessages(type) {
+  let fromEmail, toEmail, chatDiv;
+
+  if (type === "assigned") {
+    fromEmail = currentUser.Email;
+    toEmail = assignedUser.Email;
+    chatDiv = document.getElementById("chatAssigned");
+  } else if (type === "santa") {
+    fromEmail = currentUser.Email;
+    toEmail = currentUser.SantaEmail;
+    chatDiv = document.getElementById("chatSanta");
+  }
+
+  const threadA = `${fromEmail}_to_${toEmail}`;
+  const threadB = `${toEmail}_to_${fromEmail}`;
+  const lastTime = lastMessageTimestamps[type] || 0;
+
+  try {
+    const [resA, resB] = await Promise.all([
+      fetch(`${proxyBase}/readChat?thread=${threadA}`).then(r => r.json()),
+      fetch(`${proxyBase}/readChat?thread=${threadB}`).then(r => r.json())
+    ]);
+
+    let messages = [...(resA.messages || []), ...(resB.messages || [])];
+    messages = messages.filter(m => new Date(m.Timestamp).getTime() > lastTime);
+    messages.sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
+
+    messages.forEach(m => {
+      const msg = document.createElement("div");
+      const isMe = m.FromEmail === currentUser.Email;
+      msg.classList.add("message", isMe ? "sent" : "received");
+      msg.textContent = m.Message;
+      chatDiv.appendChild(msg);
     });
 
-  // Secret Santa Chat
-  fetch(`${proxyBase}/readChat?thread=${assignedUser.Email}_to_${currentUser.Email}`)
-    .then(res => res.json())
-    .then(res => {
-      const chatDiv = document.getElementById("chatSanta");
-      const messages = res.messages || [];
-      if (JSON.stringify(messages) !== JSON.stringify(lastAssignedChatsSanta)) {
-        chatDiv.innerHTML = "";
-        messages.forEach(m => {
-          const isMe = m.FromEmail === currentUser.Email; // in case current user can also reply
-          const msg = document.createElement("div");
-          msg.classList.add("message", isMe ? "sent" : "received");
-          msg.textContent = m.Message;
-          chatDiv.appendChild(msg);
-        });
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-        lastAssignedChatsSanta = messages;
-      }
-    });
+    if (messages.length > 0) {
+      lastMessageTimestamps[type] = new Date(messages[messages.length - 1].Timestamp).getTime();
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+  } catch (err) {
+    console.error("Error fetching new messages:", err);
+  }
 }
 
 // --- Send Chat ---
@@ -273,11 +345,11 @@ function sendChat(type) {
 }
 
 // --- Polling ---
-function startPolling() {
+function startPolling(type) {
   const dashboardVisible = document.getElementById("dashboard").style.display === "block";
   if (dashboardVisible) {
     fetchAssignedWishlist();
-    fetchChats();
+    fetchNewMessages(type);
   }
   setTimeout(startPolling, 3000);
 }
