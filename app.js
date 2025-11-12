@@ -267,7 +267,7 @@ function sendChat(type) {
   fetch(`${proxyBase}/writeChat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({from: currentUser.Email, to: toEmail, message: messageText })
+    body: JSON.stringify({type: "chat", from: currentUser.Email, to: toEmail, message: messageText })
   })
   .then(fetchChats) // refresh chats from backend to get any new messages
   .catch(err => console.error("Error sending chat:", err));
