@@ -1,6 +1,6 @@
 const proxyBase = "http://localhost:3000"; // proxy server URL
 
-let currentUser, assignedUser;
+let currentUser, assignedUser, santaUser;
 let lastAssignedWishlist = "";
 let lastAssignedChatsAssigned = [];
 let lastAssignedChatsSanta = [];
@@ -60,6 +60,7 @@ function handleLogin() {
 
       currentUser = res.user;
       assignedUser = res.assigned;
+      santaUser = res.santa;
 
       fetch(`${proxyBase}/getUser?email=${encodeURIComponent(currentUser.Email)}`)
         .then(res => res.json())
@@ -239,15 +240,13 @@ function fetchChats() {
 
 // --- Send Chat ---
 function sendChat(type) {
-  let toEmail, msgInput, chatDiv; fromEmail
+  let toEmail, msgInput, chatDiv;
   if (type === "assigned") {
     toEmail = assignedUser.Email;
-    fromEmail = currentUser.Email;
     msgInput = document.getElementById("chatAssignedInput");
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
-    toEmail = currentUser.AssignedTo || assignedUser.Email; // your Secret Santa
-    fromEmail = currentUser.Email
+    toEmail = santaUser.Email; // your Secret Santa
     msgInput = document.getElementById("chatSantaInput");
     chatDiv = document.getElementById("chatSanta");
   }
