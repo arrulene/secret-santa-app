@@ -228,7 +228,7 @@ async function fetchFullChatHistory(type) {
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
     fromEmail = currentUser.Email;
-    toEmail = currentUser.SantaEmail; // use Santa column
+    toEmail = santaUser.Email; // use Santa column
     chatDiv = document.getElementById("chatSanta");
   }
 
