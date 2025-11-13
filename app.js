@@ -34,10 +34,8 @@ function showScreen(screenId) {
   });
 }
 
-
-
 // --- Login ---
-function handleLogin() {
+async function handleLogin() {
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
   if (!email || !code) { 
@@ -46,44 +44,39 @@ function handleLogin() {
   }
 
   const loader = document.getElementById("loader");
+  const loaderText = document.getElementById("loaderText");
   document.body.style.overflow = "hidden"; // lock scrolling
   loader.style.display = "block";
+  loaderText.textContent = "Logging you in...";
 
-  fetch(`${proxyBase}/loginUser?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`)
-    .then(res => res.json())
-    .then(res => {
-      if (res.status !== "ok") {
-        loader.style.display = "none";
-        document.body.style.overflow = "auto";
-        alert(res.message);
-        return;
-      }
+  try {
+    const res = await fetch(`${proxyBase}/loginUser?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`);
+    const data = await res.json();
 
-      currentUser = res.user;
-      assignedUser = res.assigned;
-      santaUser = res.santa;
-
-      fetch(`${proxyBase}/getUser?email=${encodeURIComponent(currentUser.Email)}`)
-        .then(res => res.json())
-        .then(userData => {
-          loader.style.display = "none";
-          document.body.style.overflow = "auto";
-          //currentUser.FirstLogin = userData.FirstLogin || false;
-          loadDashboard();
-        })
-        .catch(err => {
-          loader.style.display = "none";
-          document.body.style.overflow = "auto";
-          console.error("Error fetching user data:", err);
-          currentUser.FirstLogin = false; // fallback
-          loadDashboard();
-        });
-    })
-    .catch(err => {
+    if (data.status !== "ok") {
       loader.style.display = "none";
       document.body.style.overflow = "auto";
-      alert("Error connecting to server: " + err.message);
-    });
+      alert(data.message);
+      return;
+    }
+
+    currentUser = res.user;
+    assignedUser = res.assigned;
+    santaUser = res.santa;
+
+    loaderText.textContent = "Loading your dashboard...";
+
+    const userData = await fetch(`${proxyBase}/getUser?email=${encodeURIComponent(currentUser.Email)}`).then(r => r.json());
+    currentUser = { ...currentUser, ...userData }; // Merge additional data
+
+    await loadDashboard();
+  } catch (err) {
+    alert("Error connecting to server: " + err.message);
+    console.error(err);
+  } finally {
+    document.body.style.overflow = "auto";
+    loader.style.display = "none";
+  }
 }
 
 // --- Dashboard / Reveal ---
@@ -93,25 +86,13 @@ async function loadDashboard() {
 
   const isFirstLogin = currentUser.FirstLogin === true;
 
+  await initDashboardContent();
+
   if (isFirstLogin) {
     showScreen("revealScreen");
     assignedNameReveal.textContent = assignedUser.Name;
 
-    // Confetti
-    document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
-    for (let i = 0; i < 25; i++) {
-      const confetti = document.createElement("div");
-      confetti.classList.add("confetti-piece");
-      confetti.style.top = "-10px";
-      confetti.style.left = `${Math.random() * 100}vw`;
-      confetti.style.width = `${6 + Math.random() * 6}px`;
-      confetti.style.height = confetti.style.width;
-      confetti.style.borderRadius = "50%";
-      confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
-      confetti.style.zIndex = 10000;
-      confetti.style.animationDuration = `${2 + Math.random() * 3}s`;
-      document.body.appendChild(confetti);
-    }
+    createConfetti();
 
     continueBtn.onclick = async () => {
       // Disable button to prevent multiple clicks
@@ -130,6 +111,7 @@ async function loadDashboard() {
             email: currentUser.Email
           })
         });
+
         const data = await res.json();
         if (data.status === "ok") {
           currentUser.FirstLogin = false;
@@ -150,17 +132,13 @@ async function loadDashboard() {
 }
 
 // --- Dashboard content ---
-function initDashboardContent() {
+async function initDashboardContent() {
+  document.getElementById("dashboard").style.display="none";
   document.getElementById("userName").textContent = currentUser.Name;
   document.getElementById("myWishlist").value = currentUser.Wishlist || "";
   document.getElementById("assignedName").textContent = assignedUser.Name;
   document.getElementById("assignedNameWishlist").textContent = assignedUser.Name;
   document.getElementById("assignedNameChat").textContent = assignedUser.Name;
-}
-
-async function initDashboard() {
-  document.getElementById("dashboardLoading").style.display="flex";
-  document.getElementById("dashboard").style.display="none";
 
   try {
     // Fetch user data and setup dashboard content
@@ -180,6 +158,24 @@ async function initDashboard() {
   } catch (err) {
     console.error("Error initializing dashboard:", err);
     document.getElementById("dashboardLoading").innerHTML = "<p>Failed to load dashboard.</p>";
+  }
+}
+
+// Create Confetti
+function createConfetti() {
+  document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
+  for (let i = 0; i < 25; i++) {
+    const confetti = document.createElement("div");
+    confetti.classList.add("confetti-piece");
+    confetti.style.top = "-10px";
+    confetti.style.left = `${Math.random() * 100}vw`;
+    confetti.style.width = `${6 + Math.random() * 6}px`;
+    confetti.style.height = confetti.style.width;
+    confetti.style.borderRadius = "50%";
+    confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+    confetti.style.zIndex = 10000;
+    confetti.style.animationDuration = `${2 + Math.random() * 3}s`;
+    document.body.appendChild(confetti);
   }
 }
 
