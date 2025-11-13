@@ -376,7 +376,7 @@ body {
 
 .message.received {
   align-self: flex-start;
-  background-color: var(--color-bg-card);
+  background-color: var(--color-accent-gold);
   color: var(--color-text-main);
   border-bottom-left-radius: 2px;
 }

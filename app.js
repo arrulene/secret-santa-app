@@ -272,7 +272,7 @@ async function fetchNewMessages(type) {
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
     fromEmail = currentUser.Email;
-    toEmail = currentUser.SantaEmail;
+    toEmail = santaUser.Email;
     chatDiv = document.getElementById("chatSanta");
   }
 
