@@ -86,11 +86,12 @@ async function handleLogin() {
 async function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
+  const loader = document.getElementById("loader");
 
   const isFirstLogin = currentUser.FirstLogin === true;
 
   await initDashboardContent();
-  loader.style.display = "none";
+  if (loader) loader.style.display = "none";
 
   if (isFirstLogin) {
     assignedNameReveal.textContent = assignedUser.Name;
@@ -137,7 +138,6 @@ async function loadDashboard() {
 
 // --- Dashboard content ---
 async function initDashboardContent() {
-  document.getElementById("dashboard").style.display="none";
   document.getElementById("userName").textContent = currentUser.Name;
   document.getElementById("myWishlist").value = currentUser.Wishlist || "";
   document.getElementById("assignedName").textContent = assignedUser.Name;
