@@ -160,7 +160,7 @@ async function initDashboardContent() {
 }
 
 function initDashboard() {
-  document.getElementById("dashboard").style.display = "block";
+  showScreen("dashboard");
 }
 
 // Create Confetti
