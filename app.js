@@ -60,16 +60,19 @@ async function handleLogin() {
       return;
     }
 
-    currentUser = res.user;
-    assignedUser = res.assigned;
-    santaUser = res.santa;
+    currentUser = data.user || { Email: email };
+    assignedUser = data.assigned;
+    santaUser = data.santa;
 
     loaderText.textContent = "Loading your dashboard...";
 
-    const userData = await fetch(`${proxyBase}/getUser?email=${encodeURIComponent(currentUser.Email)}`).then(r => r.json());
-    currentUser = { ...currentUser, ...userData }; // Merge additional data
+    if (currentUser.Email) {
+      const userData = await fetch(`${proxyBase}/getUser?email=${encodeURIComponent(currentUser.Email)}`).then(r => r.json());
+      currentUser = { ...currentUser, ...userData }; // Merge additional data
+    }
 
     await loadDashboard();
+
   } catch (err) {
     alert("Error connecting to server: " + err.message);
     console.error(err);
@@ -87,10 +90,11 @@ async function loadDashboard() {
   const isFirstLogin = currentUser.FirstLogin === true;
 
   await initDashboardContent();
+  loader.style.display = "none";
 
   if (isFirstLogin) {
-    showScreen("revealScreen");
     assignedNameReveal.textContent = assignedUser.Name;
+    showScreen("revealScreen");
 
     createConfetti();
 
@@ -141,9 +145,7 @@ async function initDashboardContent() {
   document.getElementById("assignedNameChat").textContent = assignedUser.Name;
 
   try {
-    // Fetch user data and setup dashboard content
-    await initDashboardContent();
-
+  
     await Promise.all([
       fetchFullChatHistory("assigned"),
       fetchFullChatHistory("santa")
@@ -152,13 +154,13 @@ async function initDashboardContent() {
     startPolling("assigned");
     startPolling("santa")
 
-    document.getElementById("dashboardLoading").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
-
   } catch (err) {
     console.error("Error initializing dashboard:", err);
-    document.getElementById("dashboardLoading").innerHTML = "<p>Failed to load dashboard.</p>";
   }
+}
+
+function initDashboard() {
+  document.getElementById("dashboard").style.display = "block";
 }
 
 // Create Confetti
