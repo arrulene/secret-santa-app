@@ -278,11 +278,11 @@ function sendChat(type) {
   msgInput.value = "";
 
   // Optimistically add message to chat (so it appears instantly)
-  const msgDiv = document.createElement("div");
-  msgDiv.classList.add("message", "sent");
-  msgDiv.textContent = messageText;
-  chatDiv.appendChild(msgDiv);
-  chatDiv.scrollTop = chatDiv.scrollHeight;
+  //const msgDiv = document.createElement("div");
+  //msgDiv.classList.add("message", "sent");
+  //msgDiv.textContent = messageText;
+  //chatDiv.appendChild(msgDiv);
+  //chatDiv.scrollTop = chatDiv.scrollHeight;
 
   const threadID = `${currentUser.email}_to_${toEmail}`;
 
