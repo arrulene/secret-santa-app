@@ -1,4 +1,6 @@
-const proxyBase = "http://localhost:3000"; // proxy server URL
+//const proxyBase = "http://localhost:3000"; // proxy server URL
+
+const proxyBase = "https://script.google.com/macros/s/AKfycbyZDIi_bAfRVUx8wf0CSDlNZra7fF2maG04GgGQU0hSw7SZLmtluP13wcJte3c1KW4x/exec";
 
 let currentUser, assignedUser, santaUser;
 let lastAssignedWishlist = "";
