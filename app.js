@@ -112,8 +112,7 @@ async function loadDashboard() {
       try {
         const res = await fetch(`${proxyBase}/markFirstLoginComplete`, {
           method: "POST",
-          mode: "cors",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
             type: "firstLoginComplete",
             email: currentUser.Email
@@ -199,8 +198,7 @@ function saveWishlist() {
  
   fetch(`${proxyBase}/writeWishlist`, {
     method: "POST",
-    mode: "cors",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ type: "wishlist", email: currentUser.Email, wishlist })
   })
   .then(res => res.json())
@@ -371,8 +369,7 @@ function sendChat(type) {
   // Send to backend
   fetch(`${proxyBase}/writeChat`, {
     method: "POST",
-    mode: "cors",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({type: "chat", from: currentUser.Email, to: toEmail, message: messageText })
   })
   .then(fetchChats) // refresh chats from backend to get any new messages
