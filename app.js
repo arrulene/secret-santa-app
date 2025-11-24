@@ -112,6 +112,7 @@ async function loadDashboard() {
       try {
         const res = await fetch(`${proxyBase}/markFirstLoginComplete`, {
           method: "POST",
+          mode: "cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "firstLoginComplete",
@@ -198,6 +199,7 @@ function saveWishlist() {
  
   fetch(`${proxyBase}/writeWishlist`, {
     method: "POST",
+    mode: "cors",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "wishlist", email: currentUser.Email, wishlist })
   })
@@ -369,6 +371,7 @@ function sendChat(type) {
   // Send to backend
   fetch(`${proxyBase}/writeChat`, {
     method: "POST",
+    mode: "cors",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({type: "chat", from: currentUser.Email, to: toEmail, message: messageText })
   })
