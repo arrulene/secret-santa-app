@@ -214,7 +214,7 @@ function fetchAssignedWishlist() {
   participantsRef
     .doc(assignedUser.email)
     .onSnapshot(doc => {
-      const newWishlist = res.assigned?.wishlist || "";
+      const newWishlist = doc.data()?.wishlist || "";
       if (lastAssignedWishlist !== newWishlist) {
         if (lastAssignedWishlist) {
           assignedArea.classList.add("highlight");
