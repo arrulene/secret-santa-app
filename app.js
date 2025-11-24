@@ -184,7 +184,16 @@ function createConfetti() {
 
 // --- Wishlist ---
 function saveWishlist() {
-  const wishlist = document.getElementById("myWishlist").value;
+  const wishlistTextarea = document.getElementById("myWishlist");
+  const saveButton = wishlistTextarea.nextElementSibling;
+  const wishlist = wishlistTextarea.value;
+  
+  wishlistTextarea.disabled = true;
+  saveButton.disabled = true;
+  const originalButtonText = saveButton.textContent;
+  saveButton.textContent = "Saving...";
+  saveButton.style.backgroundColor = "#474747";
+ 
   fetch(`${proxyBase}/writeWishlist`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -192,7 +201,29 @@ function saveWishlist() {
   })
   .then(res => res.json())
   .then(res => {
-    if (res.status === "ok"); // alert("Wishlist saved!");
+    if (res.status === "ok") {
+      saveButton.textContent = "Saved!";
+      saveButton.style.backgroundColor = "var(--color-btn-primary)";
+      setTimeout(() => {
+        saveButton.textContent = originalButtonText;
+        wishlistTextarea.disabled = false;
+        saveButton.disabled = false;
+      }, 1500);
+    } else {
+      saveButton.textContent = "Error!";
+      saveButton.style.backgroundColor = "#B43B2B";
+    }
+  })
+  .catch(err => {
+    console.error("Error saving wishlist:", err);
+    saveButton.textContent = "Error!";
+    saveButton.style.backgroundColor = "#B43B2B";
+    setTimeout(() => {
+      saveButton.textContent = originalButtonText;
+      wishlistTextarea.disabled = false;
+      saveButton.disabled = false;
+      saveButton.style.backgroundColor = "var(--color-btn-primary)";
+    }, 2000);
   });
 }
 
