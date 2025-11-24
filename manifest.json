@@ -1,10 +1,11 @@
 {
   "name": "Secret Santa",
   "short_name": "Santa",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#d9312b",
-  "theme_color": "#f9d423",
+  "orientation": "portrait",
+  "background_color": "#474B41",
+  "theme_color": "#E8D7B8",
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -16,5 +17,7 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "scope":"/",
+  "prefer_related_applications": false
 }

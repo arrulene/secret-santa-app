@@ -9,6 +9,16 @@ let lastAssignedWishlist = "";
 const participantsRef = db.collection("participants");
 const chatsRef = db.collection("chats");
 
+// Enable offline data persistence
+db.enablePersistence()
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn("Multiple tabs open: persistence can only be enabled in one tab at a time.");
+    } else if (err.code === 'unimplemented') {
+      console.warn("Persistence is not available in this browser.");
+    }
+  });
+
 // --- Startup: show loginBox on page load ---
 document.addEventListener("DOMContentLoaded", () => {
   showScreen("loginBox");
