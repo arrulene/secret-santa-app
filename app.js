@@ -148,7 +148,8 @@ async function initDashboardContent() {
   
     await Promise.all([
       fetchFullChatHistory("assigned"),
-      fetchFullChatHistory("santa")
+      fetchFullChatHistory("santa"),
+      fetchAssignedWishlist()
     ]);
 
     startPolling("assigned");
@@ -346,8 +347,7 @@ function sendChat(type) {
 function startPolling(type) {
   const dashboardVisible = document.getElementById("dashboard").style.display === "block";
   if (dashboardVisible) {
-    fetchAssignedWishlist();
     fetchNewMessages(type);
   }
-  setTimeout(startPolling, 3000);
+  setTimeout(startPolling, 5000);
 }

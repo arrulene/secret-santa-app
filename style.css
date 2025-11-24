@@ -345,8 +345,8 @@ body {
   padding: 10px 14px;
   font-size: 0.95rem;
   font-family: 'Poppins', sans-serif;
-  color: var(--color-text-main);
-  background-color: var(--color-bg-card);
+  color: var(--color-accent-gold);
+  background-color: var(--color-bg-accent);
 
   border: none;
   resize: none;
