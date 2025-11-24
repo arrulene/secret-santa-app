@@ -54,8 +54,8 @@ async function handleLogin() {
 
   try {
     const snapshot = await participantsRef
-      .where("Email","==", email)
-      .where("Logincode", "==", code)
+      .where("email","==", email)
+      .where("loginCode", "==", code)
       .get();
 
     if (snapshot.empty) {
@@ -65,12 +65,12 @@ async function handleLogin() {
     currentUser = snapshot.docs[0].data();
 
     const assignedSnap = await participantsRef
-      .where("Name","==",currentUser.AssignedTo)
+      .where("name","==",currentUser.assignedTo)
       .get();
     assignedUser = assignedSnap.docs[0]?.data() || {};
 
     const santaSnap = await participantsRef
-      .where("Name", "==", currentUser.Santa)
+      .where("name", "==", currentUser.santa)
       .get();
     santaUser = santaSnap.docs[0]?.data() || {};
 
@@ -93,13 +93,13 @@ async function loadDashboard() {
   const continueBtn = document.getElementById("continueButton");
   const loader = document.getElementById("loader");
 
-  const isFirstLogin = currentUser.FirstLogin === true;
+  const isFirstLogin = currentUser.firstLogin === true;
 
   await initDashboardContent();
   if (loader) loader.style.display = "none";
 
   if (isFirstLogin) {
-    assignedNameReveal.textContent = assignedUser.Name;
+    assignedNameReveal.textContent = assignedUser.name;
     showScreen("revealScreen");
 
     createConfetti();
@@ -114,9 +114,9 @@ async function loadDashboard() {
 
       try {
         await participantsRef
-            .doc(currentUser.Email)
-            .update({FirstLogin: false});
-        currentUser.FirstLogin = false;
+            .doc(currentUser.email)
+            .update({firstLogin: false});
+        currentUser.firstLogin = false;
       } catch (err) {
         console.error("Error marking first login:", err);
       }
@@ -131,11 +131,11 @@ async function loadDashboard() {
 
 // --- Dashboard content ---
 async function initDashboardContent() {
-  document.getElementById("userName").textContent = currentUser.Name;
-  document.getElementById("myWishlist").value = currentUser.Wishlist || "";
-  document.getElementById("assignedName").textContent = assignedUser.Name;
-  document.getElementById("assignedNameWishlist").textContent = assignedUser.Name;
-  document.getElementById("assignedNameChat").textContent = assignedUser.Name;
+  document.getElementById("userName").textContent = currentUser.name;
+  document.getElementById("myWishlist").value = currentUser.wishlist || "";
+  document.getElementById("assignedName").textContent = assignedUser.name;
+  document.getElementById("assignedNameWishlist").textContent = assignedUser.name;
+  document.getElementById("assignedNameChat").textContent = assignedUser.name;
 
   try {
   
@@ -186,7 +186,7 @@ async function saveWishlist() {
  
   try {
     
-    await participantsRef.doc(currentUser.Email).update({Wishlist: wishlist});
+    await participantsRef.doc(currentUser.email).update({wishlist: wishlist});
     saveButton.textContent = "Saved!";
     saveButton.style.backgroundColor = "var(--color-btn-primary)";
     setTimeout(() => {
@@ -212,9 +212,9 @@ function fetchAssignedWishlist() {
   const assignedArea = document.getElementById("assignedWishlist");
 
   participantsRef
-    .doc(assignedUser.Email)
+    .doc(assignedUser.email)
     .onSnapshot(doc => {
-      const newWishlist = res.assigned?.Wishlist || "";
+      const newWishlist = res.assigned?.wishlist || "";
       if (lastAssignedWishlist !== newWishlist) {
         if (lastAssignedWishlist) {
           assignedArea.classList.add("highlight");
@@ -231,12 +231,12 @@ function setupRealtimeChats(type) {
   let fromEmail, toEmail, chatDiv;
 
   if (type === "assigned") {
-    fromEmail = currentUser.Email;
-    toEmail = assignedUser.Email;
+    fromEmail = currentUser.email;
+    toEmail = assignedUser.email;
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
-    fromEmail = currentUser.Email;
-    toEmail = santaUser.Email;
+    fromEmail = currentUser.email;
+    toEmail = santaUser.email;
     chatDiv = document.getElementById("chatSanta");
   }
 
@@ -251,7 +251,7 @@ function setupRealtimeChats(type) {
       snapshot.forEach(doc => {
         const m = doc.data();
         const msgDiv = document.createElement("div");
-        const isMe = m.from === currentUser.Email;
+        const isMe = m.from === currentUser.email;
         msgDiv.classList.add("message", isMe ? "sent" : "received");
         msgDiv.textContent = m.message;
         chatDiv.appendChild(msgDiv);
@@ -264,11 +264,11 @@ function setupRealtimeChats(type) {
 function sendChat(type) {
   let toEmail, msgInput, chatDiv;
   if (type === "assigned") {
-    toEmail = assignedUser.Email;
+    toEmail = assignedUser.email;
     msgInput = document.getElementById("chatAssignedInput");
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
-    toEmail = santaUser.Email; // your Secret Santa
+    toEmail = santaUser.email; // your Secret Santa
     msgInput = document.getElementById("chatSantaInput");
     chatDiv = document.getElementById("chatSanta");
   }
@@ -284,11 +284,11 @@ function sendChat(type) {
   chatDiv.appendChild(msgDiv);
   chatDiv.scrollTop = chatDiv.scrollHeight;
 
-  const threadID = `${currentUser.Email}_to_${toEmail}`;
+  const threadID = `${currentUser.email}_to_${toEmail}`;
 
   // Send to backend
   chatsRef.add({
-    from: currentUser.Email,
+    from: currentUser.email,
     to: toEmail,
     message: messageText,
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
