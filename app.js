@@ -1,12 +1,13 @@
 //const proxyBase = "http://localhost:3000"; // proxy server URL
 
-const proxyBase = "https://script.google.com/macros/s/AKfycbyZDIi_bAfRVUx8wf0CSDlNZra7fF2maG04GgGQU0hSw7SZLmtluP13wcJte3c1KW4x/exec";
+//const proxyBase = "https://script.google.com/macros/s/AKfycbyZDIi_bAfRVUx8wf0CSDlNZra7fF2maG04GgGQU0hSw7SZLmtluP13wcJte3c1KW4x/exec";
 
 let currentUser, assignedUser, santaUser;
 let lastAssignedWishlist = "";
-let lastAssignedChatsAssigned = [];
-let lastAssignedChatsSanta = [];
 
+// Firestore collection references
+const participantsRef = db.collection("participants");
+const chatsRef = db.collection("chats");
 
 // --- Startup: show loginBox on page load ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -52,26 +53,28 @@ async function handleLogin() {
   loaderText.textContent = "Logging you in...";
 
   try {
-    const res = await fetch(`${proxyBase}/loginUser?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`);
-    const data = await res.json();
+    const snapshot = await participantsRef
+      .where("Email","==", email)
+      .where("Logincode", "==", code)
+      .get();
 
-    if (data.status !== "ok") {
-      loader.style.display = "none";
-      document.body.style.overflow = "auto";
-      alert(data.message);
-      return;
+    if (snapshot.empty) {
+      throw new Error("Invalid email or code")
     }
 
-    currentUser = data.user || { Email: email };
-    assignedUser = data.assigned;
-    santaUser = data.santa;
+    currentUser = snapshot.docs[0].data();
+
+    const assignedSnap = await participantsRef
+      .where("Name","==",currentUser.AssignedTo)
+      .get();
+    assignedUser = assignedSnap.docs[0]?.data() || {};
+
+    const santaSnap = await participantsRef
+      .where("Name", "==", currentUser.Santa)
+      .get();
+    santaUser = santaSnap.docs[0]?.data() || {};
 
     loaderText.textContent = "Loading your dashboard...";
-
-    if (currentUser.Email) {
-      const userData = await fetch(`${proxyBase}/getUser?email=${encodeURIComponent(currentUser.Email)}`).then(r => r.json());
-      currentUser = { ...currentUser, ...userData }; // Merge additional data
-    }
 
     await loadDashboard();
 
@@ -110,22 +113,10 @@ async function loadDashboard() {
       confettiPieces.forEach(el => el.remove());
 
       try {
-        const res = await fetch(`${proxyBase}/markFirstLoginComplete`, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            type: "firstLoginComplete",
-            email: currentUser.Email
-          })
-        });
-
-        const data = await res.json();
-        if (data.status === "ok") {
-          currentUser.FirstLogin = false;
-          console.log("✅ First login marked complete for:", currentUser.Email);
-        } else {
-          console.warn("⚠️ Failed to mark first login:", data);
-        }
+        await participantsRef
+            .doc(currentUser.Email)
+            .update({FirstLogin: false});
+        currentUser.FirstLogin = false;
       } catch (err) {
         console.error("Error marking first login:", err);
       }
@@ -149,13 +140,10 @@ async function initDashboardContent() {
   try {
   
     await Promise.all([
-      fetchFullChatHistory("assigned"),
-      fetchFullChatHistory("santa"),
+      setupRealtimeChats("assigned"),
+      setupRealtimeChats("santa"),
       fetchAssignedWishlist()
     ]);
-
-    startPolling("assigned");
-    startPolling("santa")
 
   } catch (err) {
     console.error("Error initializing dashboard:", err);
@@ -185,7 +173,7 @@ function createConfetti() {
 }
 
 // --- Wishlist ---
-function saveWishlist() {
+async function saveWishlist() {
   const wishlistTextarea = document.getElementById("myWishlist");
   const saveButton = wishlistTextarea.nextElementSibling;
   const wishlist = wishlistTextarea.value;
@@ -196,27 +184,18 @@ function saveWishlist() {
   saveButton.textContent = "Saving...";
   saveButton.style.backgroundColor = "#474747";
  
-  fetch(`${proxyBase}/writeWishlist`, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ type: "wishlist", email: currentUser.Email, wishlist })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "ok") {
-      saveButton.textContent = "Saved!";
-      saveButton.style.backgroundColor = "var(--color-btn-primary)";
-      setTimeout(() => {
-        saveButton.textContent = originalButtonText;
-        wishlistTextarea.disabled = false;
-        saveButton.disabled = false;
-      }, 1500);
-    } else {
-      saveButton.textContent = "Error!";
-      saveButton.style.backgroundColor = "#B43B2B";
-    }
-  })
-  .catch(err => {
+  try {
+    
+    await participantsRef.doc(currentUser.Email).update({Wishlist: wishlist});
+    saveButton.textContent = "Saved!";
+    saveButton.style.backgroundColor = "var(--color-btn-primary)";
+    setTimeout(() => {
+      saveButton.textContent = originalButtonText;
+      wishlistTextarea.disabled = false;
+      saveButton.disabled = false;
+    }, 1500);
+
+  } catch (err) {
     console.error("Error saving wishlist:", err);
     saveButton.textContent = "Error!";
     saveButton.style.backgroundColor = "#B43B2B";
@@ -226,20 +205,20 @@ function saveWishlist() {
       saveButton.disabled = false;
       saveButton.style.backgroundColor = "var(--color-btn-primary)";
     }, 2000);
-  });
+  }
 }
 
 function fetchAssignedWishlist() {
-  fetch(`${proxyBase}/readParticipants?email=${currentUser.Email}`)
-    .then(res => res.json())
-    .then(res => {
-      const assignedArea = document.getElementById("assignedWishlist");
-      const newWishlist = res.assigned?.Wishlist || "";
+  const assignedArea = document.getElementById("assignedWishlist");
 
+  participantsRef
+    .doc(assignedUser.Email)
+    .onSnapshot(doc => {
+      const newWishlist = res.assigned?.Wishlist || "";
       if (lastAssignedWishlist !== newWishlist) {
         if (lastAssignedWishlist) {
           assignedArea.classList.add("highlight");
-          setTimeout(() => assignedArea.classList.remove("highlight"), 1000);
+          setTimeout(() => assignedArea.classList.remove("highlight"), 3000);
         }
         assignedArea.textContent = newWishlist;
         lastAssignedWishlist = newWishlist;
@@ -247,57 +226,8 @@ function fetchAssignedWishlist() {
     });
 }
 
-let lastMessageTimestamps = {
-  assigned: 0,
-  santa :0,
-}
-
 // --- Fetch & Render Chats ---
-async function fetchFullChatHistory(type) {
-  let fromEmail, toEmail, chatDiv;
-
-  if (type === "assigned") {
-    fromEmail = currentUser.Email;
-    toEmail = assignedUser.Email;
-    chatDiv = document.getElementById("chatAssigned");
-  } else if (type === "santa") {
-    fromEmail = currentUser.Email;
-    toEmail = santaUser.Email; // use Santa column
-    chatDiv = document.getElementById("chatSanta");
-  }
-
-  const threadA = `${fromEmail}_to_${toEmail}`;
-  const threadB = `${toEmail}_to_${fromEmail}`;
-
-  try {
-    const [resA, resB] = await Promise.all([
-      fetch(`${proxyBase}/readChat?thread=${threadA}`).then(r => r.json()),
-      fetch(`${proxyBase}/readChat?thread=${threadB}`).then(r => r.json())
-    ]);
-
-    let messages = [...(resA.messages || []), ...(resB.messages || [])];
-    messages.sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
-
-    chatDiv.innerHTML = "";
-    messages.forEach(m => {
-      const msg = document.createElement("div");
-      const isMe = m.FromEmail === currentUser.Email;
-      msg.classList.add("message", isMe ? "sent" : "received");
-      msg.textContent = m.Message;
-      chatDiv.appendChild(msg);
-    });
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-
-    if (messages.length > 0) {
-      lastMessageTimestamps[type] = new Date(messages[messages.length - 1].Timestamp).getTime();
-    }
-
-  } catch (err) {
-    console.error("Error fetching full chat history:", err);
-  }
-}
-
-async function fetchNewMessages(type) {
+function setupRealtimeChats(type) {
   let fromEmail, toEmail, chatDiv;
 
   if (type === "assigned") {
@@ -312,34 +242,22 @@ async function fetchNewMessages(type) {
 
   const threadA = `${fromEmail}_to_${toEmail}`;
   const threadB = `${toEmail}_to_${fromEmail}`;
-  const lastTime = lastMessageTimestamps[type] || 0;
 
-  try {
-    const [resA, resB] = await Promise.all([
-      fetch(`${proxyBase}/readChat?thread=${threadA}`).then(r => r.json()),
-      fetch(`${proxyBase}/readChat?thread=${threadB}`).then(r => r.json())
-    ]);
-
-    let messages = [...(resA.messages || []), ...(resB.messages || [])];
-    messages = messages.filter(m => new Date(m.Timestamp).getTime() > lastTime);
-    messages.sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
-
-    messages.forEach(m => {
-      const msg = document.createElement("div");
-      const isMe = m.FromEmail === currentUser.Email;
-      msg.classList.add("message", isMe ? "sent" : "received");
-      msg.textContent = m.Message;
-      chatDiv.appendChild(msg);
-    });
-
-    if (messages.length > 0) {
-      lastMessageTimestamps[type] = new Date(messages[messages.length - 1].Timestamp).getTime();
+  chatsRef
+    .where("threadID", "in", [threadA, threadB])
+    .orderBy("timestamp")
+    .onSnapshot(snapshot => {
+      chatDiv.innerHTML = "";
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const msgDiv = document.createElement("div");
+        const isMe = m.from === currentUser.Email;
+        msgDiv.classList.add("message", isMe ? "sent" : "received");
+        msgDiv.textContent = m.message;
+        chatDiv.appendChild(msgDiv);
+      });
       chatDiv.scrollTop = chatDiv.scrollHeight;
-    }
-
-  } catch (err) {
-    console.error("Error fetching new messages:", err);
-  }
+    });
 }
 
 // --- Send Chat ---
@@ -366,21 +284,14 @@ function sendChat(type) {
   chatDiv.appendChild(msgDiv);
   chatDiv.scrollTop = chatDiv.scrollHeight;
 
-  // Send to backend
-  fetch(`${proxyBase}/writeChat`, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({type: "chat", from: currentUser.Email, to: toEmail, message: messageText })
-  })
-  .then(fetchChats) // refresh chats from backend to get any new messages
-  .catch(err => console.error("Error sending chat:", err));
-}
+  const threadID = `${currentUser.Email}_to_${toEmail}`;
 
-// --- Polling ---
-function startPolling(type) {
-  const dashboardVisible = document.getElementById("dashboard").style.display === "block";
-  if (dashboardVisible) {
-    fetchNewMessages(type);
-  }
-  setTimeout(startPolling, 5000);
+  // Send to backend
+  chatsRef.add({
+    from: currentUser.Email,
+    to: toEmail,
+    message: messageText,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    threadID
+  });
 }

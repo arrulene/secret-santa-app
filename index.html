@@ -3,6 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <title>Secret Santa</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+<script>
+  // Your Firebase configuration snippet (from Firebase console)
+  const firebaseConfig = {
+    apiKey: "REMOVED_API_KEY",
+    authDomain: "secret-santa-9ea6b.firebaseapp.com",
+    projectId: "secret-santa-9ea6b",
+    storageBucket: "secret-santa-9ea6b.firebasestorage.app",
+    messagingSenderId: "927536484288",
+    appId: "1:927536484288:web:4a6d5425a58d391771c225"
+  };
+
+  // Initialize Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
