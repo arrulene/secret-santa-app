@@ -376,8 +376,8 @@ body {
 
 .message.received {
   align-self: flex-start;
-  background-color: #C7B89A;
-  color: #2E2E2E;
+  background-color: #616161;
+  color: #fff;
   border-bottom-left-radius: 2px;
 }
 
