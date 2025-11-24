@@ -199,15 +199,15 @@ function fetchAssignedWishlist() {
   fetch(`${proxyBase}/readParticipants?email=${currentUser.Email}`)
     .then(res => res.json())
     .then(res => {
-      const assignedDiv = document.getElementById("assignedWishlist");
+      const assignedArea = document.getElementById("assignedWishlist");
       const newWishlist = res.assigned?.Wishlist || "";
 
       if (lastAssignedWishlist !== newWishlist) {
         if (lastAssignedWishlist) {
-          assignedDiv.classList.add("highlight");
-          setTimeout(() => assignedDiv.classList.remove("highlight"), 1000);
+          assignedArea.classList.add("highlight");
+          setTimeout(() => assignedArea.classList.remove("highlight"), 1000);
         }
-        assignedDiv.textContent = newWishlist;
+        assignedArea.textContent = newWishlist;
         lastAssignedWishlist = newWishlist;
       }
     });
