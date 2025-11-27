@@ -1,23 +1,25 @@
-let currentUser, assignedUser;
+let currentUser, assignedUser, santaUser;
 let lastAssignedWishlist = "";
 
-// Firestore collection references
-const participantsRef = db.collection("participants");
-const chatsRef = db.collection("chats");
+const participantsRef = window.db.collection("participants");
+const chatsRef = window.db.collection("chats");
 
 // Enable offline data persistence
-db.enablePersistence().catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn("Multiple tabs open: persistence can only be enabled in one tab at a time.");
-  } else if (err.code === 'unimplemented') {
-    console.warn("Persistence is not available in this browser.");
-  }
+window.db.enablePersistence()
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn("Multiple tabs open: persistence can only be enabled in one tab at a time.");
+    } else if (err.code === 'unimplemented') {
+      console.warn("Persistence is not available in this browser.");
+    }
+  });
+
+// --- Startup: show loginBox on page load ---
+document.addEventListener("DOMContentLoaded", () => {
+  showScreen("loginBox");
 });
 
-// --- Startup ---
-document.addEventListener("DOMContentLoaded", () => showScreen("loginBox"));
-
-// --- Helper ---
+// --- Helper: show one screen at a time ---
 function showScreen(screenId) {
   const screens = ["loginBox", "revealScreen", "dashboard"];
   screens.forEach(id => {
@@ -43,29 +45,36 @@ function showScreen(screenId) {
 async function handleLogin() {
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
-  if (!email || !code) return alert("Enter both email and login code");
+  if (!email || !code) { 
+    alert("Enter both email and login code"); 
+    return; 
+  }
 
   const loader = document.getElementById("loader");
   const loaderText = document.getElementById("loaderText");
-  document.body.style.overflow = "hidden";
+  document.body.style.overflow = "hidden"; 
   loader.style.display = "block";
   loaderText.textContent = "Logging you in...";
 
   try {
     const snapshot = await participantsRef
-      .where("email", "==", email)
+      .where("email","==", email)
       .where("loginCode", "==", code)
       .get();
 
-    if (snapshot.empty) throw new Error("Invalid email or code");
+    if (snapshot.empty) {
+      throw new Error("Invalid email or code");
+    }
 
     currentUser = snapshot.docs[0].data();
 
-    // Fetch assigned participant by alias
     const assignedSnap = await participantsRef
-      .where("alias", "==", currentUser.assignedToAlias)
+      .doc(currentUser.assignedTo)
       .get();
-    assignedUser = assignedSnap.docs[0]?.data() || {};
+    assignedUser = assignedSnap.exists ? assignedSnap.data() : {};
+
+    // Santa info: only use alias, do not fetch full participant doc
+    santaUser = { alias: currentUser.santa };
 
     loaderText.textContent = "Loading your dashboard...";
     await loadDashboard();
@@ -79,11 +88,12 @@ async function handleLogin() {
   }
 }
 
-// --- Dashboard ---
+// --- Dashboard / Reveal ---
 async function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
   const loader = document.getElementById("loader");
+
   const isFirstLogin = currentUser.firstLogin === true;
 
   await initDashboardContent();
@@ -99,7 +109,7 @@ async function loadDashboard() {
       document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
 
       try {
-        await participantsRef.doc(currentUser.email).update({ firstLogin: false });
+        await participantsRef.doc(currentUser.email).update({firstLogin: false});
         currentUser.firstLogin = false;
       } catch (err) {
         console.error("Error marking first login:", err);
@@ -123,6 +133,7 @@ async function initDashboardContent() {
   try {
     await Promise.all([
       setupRealtimeChats("assigned"),
+      setupRealtimeChats("santa"),
       fetchAssignedWishlist()
     ]);
   } catch (err) {
@@ -130,8 +141,11 @@ async function initDashboardContent() {
   }
 }
 
-function initDashboard() { showScreen("dashboard"); }
+function initDashboard() {
+  showScreen("dashboard");
+}
 
+// Create Confetti
 function createConfetti() {
   document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
   for (let i = 0; i < 25; i++) {
@@ -154,7 +168,7 @@ async function saveWishlist() {
   const wishlistTextarea = document.getElementById("myWishlist");
   const saveButton = wishlistTextarea.nextElementSibling;
   const wishlist = wishlistTextarea.value;
-  
+
   wishlistTextarea.disabled = true;
   saveButton.disabled = true;
   const originalButtonText = saveButton.textContent;
@@ -162,7 +176,7 @@ async function saveWishlist() {
   saveButton.style.backgroundColor = "#474747";
 
   try {
-    await participantsRef.doc(currentUser.email).update({ wishlist });
+    await participantsRef.doc(currentUser.email).update({wishlist: wishlist});
     saveButton.textContent = "Saved!";
     saveButton.style.backgroundColor = "var(--color-btn-primary)";
     setTimeout(() => {
@@ -183,14 +197,13 @@ async function saveWishlist() {
   }
 }
 
-// --- Fetch Assigned Wishlist ---
 function fetchAssignedWishlist() {
   const assignedArea = document.getElementById("assignedWishlist");
+
   participantsRef
-    .where("alias", "==", currentUser.assignedToAlias)
-    .onSnapshot(snapshot => {
-      const doc = snapshot.docs[0];
-      const newWishlist = doc?.data()?.wishlist || "";
+    .doc(currentUser.assignedTo)
+    .onSnapshot(doc => {
+      const newWishlist = doc.data()?.wishlist || "";
       if (lastAssignedWishlist !== newWishlist) {
         if (lastAssignedWishlist) {
           assignedArea.classList.add("highlight");
@@ -202,17 +215,17 @@ function fetchAssignedWishlist() {
     });
 }
 
-// --- Chats ---
+// --- Fetch & Render Chats ---
 function setupRealtimeChats(type) {
   let fromAlias, toAlias, chatDiv;
 
   if (type === "assigned") {
     fromAlias = currentUser.alias;
-    toAlias = currentUser.assignedToAlias;
+    toAlias = assignedUser.alias;
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
     fromAlias = currentUser.alias;
-    toAlias = currentUser.santaAlias;
+    toAlias = santaUser.alias;
     chatDiv = document.getElementById("chatSanta");
   }
 
@@ -236,14 +249,15 @@ function setupRealtimeChats(type) {
     });
 }
 
+// --- Send Chat ---
 function sendChat(type) {
   let toAlias, msgInput, chatDiv;
   if (type === "assigned") {
-    toAlias = currentUser.assignedToAlias;
+    toAlias = assignedUser.alias;
     msgInput = document.getElementById("chatAssignedInput");
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
-    toAlias = currentUser.santaAlias;
+    toAlias = santaUser.alias;
     msgInput = document.getElementById("chatSantaInput");
     chatDiv = document.getElementById("chatSanta");
   }
