@@ -1,8 +1,4 @@
-//const proxyBase = "http://localhost:3000"; // proxy server URL
-
-//const proxyBase = "https://script.google.com/macros/s/AKfycbyZDIi_bAfRVUx8wf0CSDlNZra7fF2maG04GgGQU0hSw7SZLmtluP13wcJte3c1KW4x/exec";
-
-let currentUser, assignedUser, santaUser;
+let currentUser, assignedUser;
 let lastAssignedWishlist = "";
 
 // Firestore collection references
@@ -10,21 +6,18 @@ const participantsRef = db.collection("participants");
 const chatsRef = db.collection("chats");
 
 // Enable offline data persistence
-db.enablePersistence()
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn("Multiple tabs open: persistence can only be enabled in one tab at a time.");
-    } else if (err.code === 'unimplemented') {
-      console.warn("Persistence is not available in this browser.");
-    }
-  });
-
-// --- Startup: show loginBox on page load ---
-document.addEventListener("DOMContentLoaded", () => {
-  showScreen("loginBox");
+db.enablePersistence().catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn("Multiple tabs open: persistence can only be enabled in one tab at a time.");
+  } else if (err.code === 'unimplemented') {
+    console.warn("Persistence is not available in this browser.");
+  }
 });
 
-// --- Helper: show one screen at a time ---
+// --- Startup ---
+document.addEventListener("DOMContentLoaded", () => showScreen("loginBox"));
+
+// --- Helper ---
 function showScreen(screenId) {
   const screens = ["loginBox", "revealScreen", "dashboard"];
   screens.forEach(id => {
@@ -32,13 +25,12 @@ function showScreen(screenId) {
     if (!el) return;
 
     if (id === screenId) {
-      // Special handling for dashboard to trigger smooth entrance
       if (id === "dashboard") {
         el.style.display = "block"; 
-        setTimeout(() => el.classList.add("show"), 20); // small delay to allow transition
+        setTimeout(() => el.classList.add("show"), 20);
       } else {
         el.style.display = (id === "revealScreen") ? "flex" : "block";
-        el.classList.remove("show"); // reset in case dashboard is hidden
+        el.classList.remove("show");
       }
     } else {
       el.style.display = "none";
@@ -51,41 +43,31 @@ function showScreen(screenId) {
 async function handleLogin() {
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
-  if (!email || !code) { 
-    alert("Enter both email and login code"); 
-    return; 
-  }
+  if (!email || !code) return alert("Enter both email and login code");
 
   const loader = document.getElementById("loader");
   const loaderText = document.getElementById("loaderText");
-  document.body.style.overflow = "hidden"; // lock scrolling
+  document.body.style.overflow = "hidden";
   loader.style.display = "block";
   loaderText.textContent = "Logging you in...";
 
   try {
     const snapshot = await participantsRef
-      .where("email","==", email)
+      .where("email", "==", email)
       .where("loginCode", "==", code)
       .get();
 
-    if (snapshot.empty) {
-      throw new Error("Invalid email or code")
-    }
+    if (snapshot.empty) throw new Error("Invalid email or code");
 
     currentUser = snapshot.docs[0].data();
 
+    // Fetch assigned participant by alias
     const assignedSnap = await participantsRef
-      .where("name","==",currentUser.assignedTo)
+      .where("alias", "==", currentUser.assignedToAlias)
       .get();
     assignedUser = assignedSnap.docs[0]?.data() || {};
 
-    const santaSnap = await participantsRef
-      .where("name", "==", currentUser.santa)
-      .get();
-    santaUser = santaSnap.docs[0]?.data() || {};
-
     loaderText.textContent = "Loading your dashboard...";
-
     await loadDashboard();
 
   } catch (err) {
@@ -97,12 +79,11 @@ async function handleLogin() {
   }
 }
 
-// --- Dashboard / Reveal ---
+// --- Dashboard ---
 async function loadDashboard() {
   const assignedNameReveal = document.getElementById("assignedNameReveal");
   const continueBtn = document.getElementById("continueButton");
   const loader = document.getElementById("loader");
-
   const isFirstLogin = currentUser.firstLogin === true;
 
   await initDashboardContent();
@@ -111,21 +92,14 @@ async function loadDashboard() {
   if (isFirstLogin) {
     assignedNameReveal.textContent = assignedUser.name;
     showScreen("revealScreen");
-
     createConfetti();
 
     continueBtn.onclick = async () => {
-      // Disable button to prevent multiple clicks
       continueBtn.disabled = true;
-
-      // Remove confetti smoothly
-      const confettiPieces = document.querySelectorAll(".confetti-piece");
-      confettiPieces.forEach(el => el.remove());
+      document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
 
       try {
-        await participantsRef
-            .doc(currentUser.email)
-            .update({firstLogin: false});
+        await participantsRef.doc(currentUser.email).update({ firstLogin: false });
         currentUser.firstLogin = false;
       } catch (err) {
         console.error("Error marking first login:", err);
@@ -133,7 +107,6 @@ async function loadDashboard() {
 
       initDashboard();
     };
-
   } else {
     initDashboard();
   }
@@ -148,23 +121,17 @@ async function initDashboardContent() {
   document.getElementById("assignedNameChat").textContent = assignedUser.name;
 
   try {
-  
     await Promise.all([
       setupRealtimeChats("assigned"),
-      setupRealtimeChats("santa"),
       fetchAssignedWishlist()
     ]);
-
   } catch (err) {
     console.error("Error initializing dashboard:", err);
   }
 }
 
-function initDashboard() {
-  showScreen("dashboard");
-}
+function initDashboard() { showScreen("dashboard"); }
 
-// Create Confetti
 function createConfetti() {
   document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
   for (let i = 0; i < 25; i++) {
@@ -193,10 +160,9 @@ async function saveWishlist() {
   const originalButtonText = saveButton.textContent;
   saveButton.textContent = "Saving...";
   saveButton.style.backgroundColor = "#474747";
- 
+
   try {
-    
-    await participantsRef.doc(currentUser.email).update({wishlist: wishlist});
+    await participantsRef.doc(currentUser.email).update({ wishlist });
     saveButton.textContent = "Saved!";
     saveButton.style.backgroundColor = "var(--color-btn-primary)";
     setTimeout(() => {
@@ -204,7 +170,6 @@ async function saveWishlist() {
       wishlistTextarea.disabled = false;
       saveButton.disabled = false;
     }, 1500);
-
   } catch (err) {
     console.error("Error saving wishlist:", err);
     saveButton.textContent = "Error!";
@@ -218,13 +183,14 @@ async function saveWishlist() {
   }
 }
 
+// --- Fetch Assigned Wishlist ---
 function fetchAssignedWishlist() {
   const assignedArea = document.getElementById("assignedWishlist");
-
   participantsRef
-    .doc(assignedUser.email)
-    .onSnapshot(doc => {
-      const newWishlist = doc.data()?.wishlist || "";
+    .where("alias", "==", currentUser.assignedToAlias)
+    .onSnapshot(snapshot => {
+      const doc = snapshot.docs[0];
+      const newWishlist = doc?.data()?.wishlist || "";
       if (lastAssignedWishlist !== newWishlist) {
         if (lastAssignedWishlist) {
           assignedArea.classList.add("highlight");
@@ -236,22 +202,22 @@ function fetchAssignedWishlist() {
     });
 }
 
-// --- Fetch & Render Chats ---
+// --- Chats ---
 function setupRealtimeChats(type) {
-  let fromEmail, toEmail, chatDiv;
+  let fromAlias, toAlias, chatDiv;
 
   if (type === "assigned") {
-    fromEmail = currentUser.email;
-    toEmail = assignedUser.email;
+    fromAlias = currentUser.alias;
+    toAlias = currentUser.assignedToAlias;
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
-    fromEmail = currentUser.email;
-    toEmail = santaUser.email;
+    fromAlias = currentUser.alias;
+    toAlias = currentUser.santaAlias;
     chatDiv = document.getElementById("chatSanta");
   }
 
-  const threadA = `${fromEmail}_to_${toEmail}`;
-  const threadB = `${toEmail}_to_${fromEmail}`;
+  const threadA = `${fromAlias}_to_${toAlias}`;
+  const threadB = `${toAlias}_to_${fromAlias}`;
 
   chatsRef
     .where("threadID", "in", [threadA, threadB])
@@ -260,8 +226,8 @@ function setupRealtimeChats(type) {
       chatDiv.innerHTML = "";
       snapshot.forEach(doc => {
         const m = doc.data();
+        const isMe = m.from === currentUser.alias;
         const msgDiv = document.createElement("div");
-        const isMe = m.from === currentUser.email;
         msgDiv.classList.add("message", isMe ? "sent" : "received");
         msgDiv.textContent = m.message;
         chatDiv.appendChild(msgDiv);
@@ -270,15 +236,14 @@ function setupRealtimeChats(type) {
     });
 }
 
-// --- Send Chat ---
 function sendChat(type) {
-  let toEmail, msgInput, chatDiv;
+  let toAlias, msgInput, chatDiv;
   if (type === "assigned") {
-    toEmail = assignedUser.email;
+    toAlias = currentUser.assignedToAlias;
     msgInput = document.getElementById("chatAssignedInput");
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
-    toEmail = santaUser.email; // your Secret Santa
+    toAlias = currentUser.santaAlias;
     msgInput = document.getElementById("chatSantaInput");
     chatDiv = document.getElementById("chatSanta");
   }
@@ -287,19 +252,11 @@ function sendChat(type) {
   if (!messageText) return;
   msgInput.value = "";
 
-  // Optimistically add message to chat (so it appears instantly)
-  //const msgDiv = document.createElement("div");
-  //msgDiv.classList.add("message", "sent");
-  //msgDiv.textContent = messageText;
-  //chatDiv.appendChild(msgDiv);
-  //chatDiv.scrollTop = chatDiv.scrollHeight;
+  const threadID = `${currentUser.alias}_to_${toAlias}`;
 
-  const threadID = `${currentUser.email}_to_${toEmail}`;
-
-  // Send to backend
   chatsRef.add({
-    from: currentUser.email,
-    to: toEmail,
+    from: currentUser.alias,
+    to: toAlias,
     message: messageText,
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
     threadID
