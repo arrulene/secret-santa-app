@@ -1,18 +1,40 @@
-let currentUser, assignedUser, santaUser;
+let currentUser, assignedUser
 let lastAssignedWishlist = "";
 
-const participantsRef = window.db.collection("participants");
-const chatsRef = window.db.collection("chats");
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { 
+  getFirestore, collection, doc, getDocs, getDoc, addDoc, setDoc, updateDoc,
+  onSnapshot, enableIndexedDbPersistence, query, where, orderBy, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
-// Enable offline data persistence
-window.db.enablePersistence()
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn("Multiple tabs open: persistence can only be enabled in one tab at a time.");
-    } else if (err.code === 'unimplemented') {
-      console.warn("Persistence is not available in this browser.");
-    }
-  });
+const firebaseConfig = {
+  apiKey: "AIzaSyA8BfH4ImIczMo_eGhN4S1rQY5Vi_HzV2I",
+  authDomain: "secret-santa-9ea6b.firebaseapp.com",
+  projectId: "secret-santa-9ea6b",
+  storageBucket: "secret-santa-9ea6b.firebasestorage.app",
+  messagingSenderId: "927536484288",
+  appId: "1:927536484288:web:4a6d5425a58d391771c225"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth();
+
+// Firestore references
+const loginsRef = collection(db, "logins");
+const participantsRef = collection(db, "participants");
+const chatsRef = collection(db, "chats");
+
+// Enable offline persistence
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn("Multiple tabs open: persistence only works in one tab at a time.");
+  } else if (err.code === 'unimplemented') {
+    console.warn("Persistence not supported in this browser.");
+  }
+});
 
 // --- Startup: show loginBox on page load ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -28,7 +50,7 @@ function showScreen(screenId) {
 
     if (id === screenId) {
       if (id === "dashboard") {
-        el.style.display = "block"; 
+        el.style.display = "block";
         setTimeout(() => el.classList.add("show"), 20);
       } else {
         el.style.display = (id === "revealScreen") ? "flex" : "block";
@@ -45,6 +67,7 @@ function showScreen(screenId) {
 async function handleLogin() {
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
+
   if (!email || !code) { 
     alert("Enter both email and login code"); 
     return; 
@@ -52,30 +75,35 @@ async function handleLogin() {
 
   const loader = document.getElementById("loader");
   const loaderText = document.getElementById("loaderText");
-  document.body.style.overflow = "hidden"; 
+  document.body.style.overflow = "hidden";
   loader.style.display = "block";
   loaderText.textContent = "Logging you in...";
 
   try {
-    const snapshot = await participantsRef
-      .where("email","==", email)
-      .where("loginCode", "==", code)
-      .get();
+    const userCredential = await signInWithEmailAndPassword(auth, email, code);
+    const user = userCredential.user;
 
-    if (snapshot.empty) {
-      throw new Error("Invalid email or code");
-    }
+    const myUID = user.uid;
 
-    currentUser = snapshot.docs[0].data();
+    // fetch user document
+    const myDocRef = doc(db, "participants", myUID);
+    const mySnap = await getDoc(myDocRef);
 
-    const assignedSnap = await participantsRef
-      .doc(currentUser.assignedTo)
-      .get();
-    assignedUser = assignedSnap.exists ? assignedSnap.data() : {};
+    if (!mySnap.exists()) throw new Error("User profile not found.");
 
-    // Santa info: only use alias, do not fetch full participant doc
-    santaUser = { alias: currentUser.santa };
+    currentUser = mySnap.data();
 
+    // fetch assigned user document
+    const assignedUID = currentUser.assignedToAlias;
+
+    const assignedDocRef = doc(db, "participants", assignedUID);
+    const assignedSnap = await getDoc(assignedDocRef);
+
+    if (!assignedSnap.exists()) throw new Error("Assigned person not found");
+
+    assignedUser = assignedSnap.data();
+
+    // continue sign in
     loaderText.textContent = "Loading your dashboard...";
     await loadDashboard();
 
@@ -87,6 +115,8 @@ async function handleLogin() {
     loader.style.display = "none";
   }
 }
+
+window.handleLogin = handleLogin;
 
 // --- Dashboard / Reveal ---
 async function loadDashboard() {
@@ -109,7 +139,9 @@ async function loadDashboard() {
       document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
 
       try {
-        await participantsRef.doc(currentUser.email).update({firstLogin: false});
+        await updateDoc(doc(db, "participants", currentUser.alias), {
+          firstLogin: false
+        });
         currentUser.firstLogin = false;
       } catch (err) {
         console.error("Error marking first login:", err);
@@ -145,7 +177,7 @@ function initDashboard() {
   showScreen("dashboard");
 }
 
-// Create Confetti
+// --- Confetti ---
 function createConfetti() {
   document.querySelectorAll(".confetti-piece").forEach(el => el.remove());
   for (let i = 0; i < 25; i++) {
@@ -176,7 +208,7 @@ async function saveWishlist() {
   saveButton.style.backgroundColor = "#474747";
 
   try {
-    await participantsRef.doc(currentUser.email).update({wishlist: wishlist});
+    await updateDoc(doc(db,"participants",currentUser.alias), {wishlist});
     saveButton.textContent = "Saved!";
     saveButton.style.backgroundColor = "var(--color-btn-primary)";
     setTimeout(() => {
@@ -197,25 +229,27 @@ async function saveWishlist() {
   }
 }
 
+window.saveWishlist = saveWishlist;
+
 function fetchAssignedWishlist() {
   const assignedArea = document.getElementById("assignedWishlist");
 
-  participantsRef
-    .doc(currentUser.assignedTo)
-    .onSnapshot(doc => {
-      const newWishlist = doc.data()?.wishlist || "";
-      if (lastAssignedWishlist !== newWishlist) {
-        if (lastAssignedWishlist) {
-          assignedArea.classList.add("highlight");
-          setTimeout(() => assignedArea.classList.remove("highlight"), 3000);
-        }
-        assignedArea.textContent = newWishlist;
-        lastAssignedWishlist = newWishlist;
+  const assignedRef = doc(db, "participants", currentUser.assignedToAlias);
+
+  onSnapshot(assignedRef, (docSnap) => {
+    const newWishlist = docSnap.data()?.wishlist || "";
+    if (lastAssignedWishlist !== newWishlist) {
+      if (lastAssignedWishlist) {
+        assignedArea.classList.add("highlight");
+        setTimeout(() => assignedArea.classList.remove("highlight"), 3000);
       }
-    });
+      assignedArea.textContent = newWishlist;
+      lastAssignedWishlist = newWishlist;
+    }
+  });
 }
 
-// --- Fetch & Render Chats ---
+// --- Realtime Chats ---
 function setupRealtimeChats(type) {
   let fromAlias, toAlias, chatDiv;
 
@@ -225,39 +259,43 @@ function setupRealtimeChats(type) {
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
     fromAlias = currentUser.alias;
-    toAlias = santaUser.alias;
+    toAlias = currentUser.santaAlias;
     chatDiv = document.getElementById("chatSanta");
   }
 
   const threadA = `${fromAlias}_to_${toAlias}`;
   const threadB = `${toAlias}_to_${fromAlias}`;
 
-  chatsRef
-    .where("threadID", "in", [threadA, threadB])
-    .orderBy("timestamp")
-    .onSnapshot(snapshot => {
-      chatDiv.innerHTML = "";
-      snapshot.forEach(doc => {
-        const m = doc.data();
-        const isMe = m.from === currentUser.alias;
-        const msgDiv = document.createElement("div");
-        msgDiv.classList.add("message", isMe ? "sent" : "received");
-        msgDiv.textContent = m.message;
-        chatDiv.appendChild(msgDiv);
-      });
-      chatDiv.scrollTop = chatDiv.scrollHeight;
+  const q = query(
+    chatsRef,
+    where("threadID", "in", [threadA, threadB]),
+    orderBy("timestamp")
+  );
+
+  onSnapshot(q, (snapshot) => {
+    chatDiv.innerHTML = "";
+    snapshot.forEach(docSnap => {
+      const m = docSnap.data();
+      const isMe = m.from === currentUser.alias;
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message", isMe ? "sent" : "received");
+      msgDiv.textContent = m.message;
+      chatDiv.appendChild(msgDiv);
     });
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+  });
 }
 
 // --- Send Chat ---
-function sendChat(type) {
+async function sendChat(type) {
   let toAlias, msgInput, chatDiv;
+
   if (type === "assigned") {
     toAlias = assignedUser.alias;
     msgInput = document.getElementById("chatAssignedInput");
     chatDiv = document.getElementById("chatAssigned");
   } else if (type === "santa") {
-    toAlias = santaUser.alias;
+    toAlias = currentUser.santaAlias;
     msgInput = document.getElementById("chatSantaInput");
     chatDiv = document.getElementById("chatSanta");
   }
@@ -268,11 +306,13 @@ function sendChat(type) {
 
   const threadID = `${currentUser.alias}_to_${toAlias}`;
 
-  chatsRef.add({
+  await addDoc(chatsRef, {
     from: currentUser.alias,
     to: toAlias,
     message: messageText,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    timestamp: serverTimestamp(),
     threadID
   });
 }
+
+window.sendChat = sendChat;
