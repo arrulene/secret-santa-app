@@ -23,8 +23,6 @@ const db = getFirestore(app);
 const auth = getAuth();
 
 // Firestore references
-const loginsRef = collection(db, "logins");
-const participantsRef = collection(db, "participants");
 const chatsRef = collection(db, "chats");
 
 // Enable offline persistence
@@ -268,21 +266,35 @@ function setupRealtimeChats(type) {
 
   const q = query(
     chatsRef,
-    where("threadID", "in", [threadA, threadB]),
+    where("threadID", "==", threadA),
     orderBy("timestamp")
   );
 
-  onSnapshot(q, (snapshot) => {
-    chatDiv.innerHTML = "";
-    snapshot.forEach(docSnap => {
-      const m = docSnap.data();
-      const isMe = m.from === currentUser.alias;
-      const msgDiv = document.createElement("div");
-      msgDiv.classList.add("message", isMe ? "sent" : "received");
-      msgDiv.textContent = m.message;
-      chatDiv.appendChild(msgDiv);
+  const q2 = query(
+    chatsRef,
+    where("threadID", "==", threadB),
+    orderBy("timestamp")
+  );
+
+  onSnapshot(q, (snapSent) => {
+    onSnapshot(q2, (snapReceived) => {
+
+      chatDiv.innerHTML = "";
+
+      const allDocs = [...snapSent.docs, ...snapReceived.docs];
+      allDocs.sort((a, b) => a.data().timestamp?.toMillis() - b.data().timestamp?.toMillis());
+
+      allDocs.forEach(docSnap => {
+        const m = docSnap.data();
+        const isMe = m.from === currentUser.uid;
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("message", isMe ? "sent" : "received");
+        msgDiv.textContent = m.message;
+        chatDiv.appendChild(msgDiv);
+      });
+      
+      chatDiv.scrollTop = chatDiv.scrollHeight;
     });
-    chatDiv.scrollTop = chatDiv.scrollHeight;
   });
 }
 
