@@ -55,7 +55,7 @@
     <div class="chat-input-container">
       <input id="chatAssignedInput" placeholder="Type a message"
              onkeydown="if(event.key==='Enter'){sendChat('assigned')}">
-      <button onclick="sendChat('assigned')">Send</button>
+      <button onclick="sendChat('assigned')">></button>
     </div>
   </div>
 
@@ -66,14 +66,13 @@
     <div class="chat-input-container">
       <input id="chatSantaInput" placeholder="Type a message"
              onkeydown="if(event.key==='Enter'){sendChat('santa')}">
-      <button onclick="sendChat('santa')">Send</button>
+      <button onclick="sendChat('santa')">></button>
     </div>
   </div>
 </div>
 
 <script type="module" src="app.js"></script>
 
-<!--
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -83,7 +82,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
--->
 
 </body>
 </html>

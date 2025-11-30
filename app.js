@@ -264,35 +264,24 @@ function setupRealtimeChats(type) {
   const threadA = `${fromAlias}_to_${toAlias}`;
   const threadB = `${toAlias}_to_${fromAlias}`;
 
-  const q = query(
-    chatsRef,
-    where("threadID", "==", threadA),
-    orderBy("timestamp")
-  );
+  chatDiv.innerHTML = "";
 
-  const q2 = query(
-    chatsRef,
-    where("threadID", "==", threadB),
-    orderBy("timestamp")
-  );
+  [threadA, threadB].forEach(threadID => {
+    const q = query(
+      chatsRef,
+      where("threadID", "==", threadID),
+      orderBy("timestamp")
+    );
 
-  onSnapshot(q, (snapSent) => {
-    onSnapshot(q2, (snapReceived) => {
-
-      chatDiv.innerHTML = "";
-
-      const allDocs = [...snapSent.docs, ...snapReceived.docs];
-      allDocs.sort((a, b) => a.data().timestamp?.toMillis() - b.data().timestamp?.toMillis());
-
-      allDocs.forEach(docSnap => {
+    onSnapshot(q, (snapshot) => {
+      snapshot.forEach(docSnap => {
         const m = docSnap.data();
-        const isMe = m.from === currentUser.uid;
+        const isMe = m.from === currentUser.alias;
         const msgDiv = document.createElement("div");
         msgDiv.classList.add("message", isMe ? "sent" : "received");
         msgDiv.textContent = m.message;
         chatDiv.appendChild(msgDiv);
       });
-      
       chatDiv.scrollTop = chatDiv.scrollHeight;
     });
   });
