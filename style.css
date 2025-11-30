@@ -232,9 +232,9 @@ body {
   display: none;
   flex-direction: column;
   gap: 20px;
-  padding: 25px;
+  padding: 25px 5px;
   border-radius: var(--radius);
-  width: calc(100%-20px);
+  width: calc(100% - 20px);
   max-width: 650px;
   margin: 5px auto;
   box-shadow: var(--shadow-card);
