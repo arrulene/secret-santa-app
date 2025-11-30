@@ -66,8 +66,15 @@ async function handleLogin() {
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
 
+  const loginButton = document.getElementById("loginBtn")
+
+  loginButton.disabled = true;
+  loginButton.style.opacity = 0.6;
+
   if (!email || !code) { 
     alert("Enter both email and login code"); 
+    loginButton.disabled = false;
+    loginButton.style.opacity = 1;
     return; 
   }
 
@@ -111,6 +118,8 @@ async function handleLogin() {
   } finally {
     document.body.style.overflow = "auto";
     loader.style.display = "none";
+    loginButton.disabled = false;
+    loginButton.style.opacity = 1;
   }
 }
 

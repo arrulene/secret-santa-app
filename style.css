@@ -37,7 +37,7 @@ body {
 }
 
 /* --- Boxes --- */
-#loginBox, #dashboard, #revealScreen {
+#loginBox, #revealScreen {
   background: var(--color-bg-card);
   padding: 25px;
   border-radius: var(--radius);
@@ -60,7 +60,9 @@ body {
 }
 
 #loginBox h1 {
-  font-size: 2rem;
+  white-space: nowrap;
+  overflow: visible;
+  font-size: clamp(1.5rem, 5vw, 2rem);
   color: var(--color-accent-gold);
   letter-spacing: 1px;
   margin-bottom: 5px;
@@ -232,15 +234,16 @@ body {
   display: none;
   flex-direction: column;
   gap: 20px;
-  padding: 25px 2px;
+  padding: 25px 5px;
   border-radius: var(--radius);
   width: calc(100% - 20px);
-  max-width: 650px;
-  margin: 5px auto;
+  max-width: 400px;
+  margin: 10px auto;
   box-shadow: var(--shadow-card);
   color: var(--color-text-main);
   border: 1px solid rgba(232, 215, 184, 0.15);
   background: var(--color-bg-card);
+  box-sizing: border-box;
   opacity: 0;
   transform: translate(20px);
   transition: opacity 0.6s ease, transform 0.6s ease;
@@ -439,13 +442,16 @@ body {
 /* --- Chat Input Row --- */
 .chat-input-container {
   display: flex;
+  align-items: flex-end;
   gap: 10px;
   margin-top: 5px;
   flex-wrap: nowrap;
 }
 
-.chat-input-container input {
+.chat-textarea {
   flex: 1;
+  min-height: 40px;
+  max-height: 120px;
   padding: 8px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
@@ -453,11 +459,17 @@ body {
   background-color: var(--color-bg-card);
   color: var(--color-text-main);
   font-size: 0.95rem;
-  transition: var(--transition);
-  min-width: 0;
+  resize: none; /* user cannot drag */
+  overflow-y: auto;
+  line-height: 1.3;
+  scrollbar-width: none;
 }
 
-.chat-input-container input:focus {
+.chat-textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-textarea:focus {
   border-color: var(--color-accent-gold);
   box-shadow: 0 0 0 3px rgba(232, 215, 184, 0.25);
 }

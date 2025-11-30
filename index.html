@@ -18,7 +18,7 @@
 <p>Enter your email and login code:</p>
 <input id="email" type="email" placeholder="example@email.com">
 <input id="code" type="text" placeholder="Login Code">
-<button onclick="handleLogin()">Login</button>
+<button id = "loginBtn" onclick="handleLogin()">Login</button>
 <div id="loader"><div class="spinner"></div><p id = "loaderText">Logging you in...</p></div>
 </div>
 
@@ -53,8 +53,10 @@
     <h3>Chat with <span id="assignedNameChat"></span></h3>
     <div id="chatAssigned" class="chatBox"></div>
     <div class="chat-input-container">
-      <input id="chatAssignedInput" placeholder="Type a message"
-             onkeydown="if(event.key==='Enter'){sendChat('assigned')}">
+      <textarea id="chatAssignedInput" class = "chat-textarea"
+              placeholder="Type a message..."
+              oninput="autoResize(this)"
+             onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChat('assigned')}"></textarea>
       <button onclick="sendChat('assigned')">></button>
     </div>
   </div>
@@ -64,8 +66,10 @@
     <h3>Chat with your Secret Santa</h3>
     <div id="chatSanta" class="chatBox"></div>
     <div class="chat-input-container">
-      <input id="chatSantaInput" placeholder="Type a message"
-             onkeydown="if(event.key==='Enter'){sendChat('santa')}">
+      <textarea id="chatSantaInput" class = "chat-textarea"
+              placeholder="Type a message..."
+              oninput="autoResize(this)"
+             onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChat('santa')}"></textarea>
       <button onclick="sendChat('santa')">></button>
     </div>
   </div>
