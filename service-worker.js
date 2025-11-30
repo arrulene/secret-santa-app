@@ -1,4 +1,4 @@
-const CACHE_NAME = 'secret-santa-cache-v3';
+const CACHE_NAME = 'secret-santa-cache-v4';
 const FILES_TO_CACHE = [
   './index.html',
   './app.js',
