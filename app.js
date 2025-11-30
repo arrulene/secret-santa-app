@@ -1,3 +1,18 @@
+function autoResize(el) {
+  const minHeight = "1.5em"; 
+  el.style.height = minHeight;
+  el.style.height = "auto";
+  el.style.height = (el.scrollHeight - 32) + 'px';
+}
+
+window.autoResize = autoResize;
+
+function resetHeight(el) {
+  el.style.height = "1.5em"; // default height when inactive
+}
+
+window.resetHeight = resetHeight;
+
 let currentUser, assignedUser
 let lastAssignedWishlist = "";
 
@@ -205,7 +220,7 @@ function createConfetti() {
 // --- Wishlist ---
 async function saveWishlist() {
   const wishlistTextarea = document.getElementById("myWishlist");
-  const saveButton = wishlistTextarea.nextElementSibling;
+  const saveButton = document.getElementById("myWishlistBtn");
   const wishlist = wishlistTextarea.value;
 
   wishlistTextarea.disabled = true;
@@ -310,6 +325,7 @@ async function sendChat(type) {
   const messageText = msgInput.value.trim();
   if (!messageText) return;
   msgInput.value = "";
+  msgInput.style.height = '1.5em';
 
   const threadID = `${currentUser.alias}_to_${toAlias}`;
 
@@ -320,6 +336,7 @@ async function sendChat(type) {
     timestamp: serverTimestamp(),
     threadID
   });
+  
 }
 
 window.sendChat = sendChat;
