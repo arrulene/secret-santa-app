@@ -2,7 +2,7 @@ function autoResize(el) {
   const minHeight = "1.5em"; 
   el.style.height = minHeight;
   el.style.height = "auto";
-  el.style.height = (el.scrollHeight - 32) + 'px';
+  el.style.height = (el.scrollHeight - 25) + 'px';
 }
 
 window.autoResize = autoResize;
@@ -15,13 +15,14 @@ window.resetHeight = resetHeight;
 
 let currentUser, assignedUser
 let lastAssignedWishlist = "";
+let realtimeUnsubscribes = [];
 
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { 
   getFirestore, collection, doc, getDocs, getDoc, addDoc, setDoc, updateDoc,
   onSnapshot, enableIndexedDbPersistence, query, where, orderBy, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA8BfH4ImIczMo_eGhN4S1rQY5Vi_HzV2I",
@@ -49,11 +50,6 @@ enableIndexedDbPersistence(db).catch((err) => {
   }
 });
 
-// --- Startup: show loginBox on page load ---
-document.addEventListener("DOMContentLoaded", () => {
-  showScreen("loginBox");
-});
-
 // --- Helper: show one screen at a time ---
 function showScreen(screenId) {
   const screens = ["loginBox", "revealScreen", "dashboard"];
@@ -69,6 +65,14 @@ function showScreen(screenId) {
         el.style.display = (id === "revealScreen") ? "flex" : "block";
         el.classList.remove("show");
       }
+
+      if (id === "loginBox") {
+        const emailInput = document.getElementById("email");
+        const codeInput = document.getElementById("code");
+        if (emailInput) emailInput.value = "";
+        if (codeInput) codeInput.value = "";
+      }
+
     } else {
       el.style.display = "none";
       el.classList.remove("show");
@@ -76,15 +80,33 @@ function showScreen(screenId) {
   });
 }
 
-// --- Login ---
+async function domReady() {
+  if (document.readyState === "loading") {
+    return new Promise(resolve => {
+      document.addEventListener("DOMContentLoaded", resolve);
+    });
+  }
+  return Promise.resolve();
+}
+
+// --- Login --- + Logout
+await domReady(); // ensure DOM ready first
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    // DOM is ready, user is signed in
+    await loadUserAndDashboard(user);
+    await loadDashboard();
+  } else {
+    // Not signed in → show login
+    showScreen("loginBox");
+  }
+});
+
 async function handleLogin() {
   const email = document.getElementById("email").value.trim();
   const code = document.getElementById("code").value.trim();
-
   const loginButton = document.getElementById("loginBtn")
-
-  loginButton.disabled = true;
-  loginButton.style.opacity = 0.6;
 
   if (!email || !code) { 
     alert("Enter both email and login code"); 
@@ -93,6 +115,9 @@ async function handleLogin() {
     return; 
   }
 
+  loginButton.disabled = true;
+  loginButton.style.opacity = 0.6;
+
   const loader = document.getElementById("loader");
   const loaderText = document.getElementById("loaderText");
   document.body.style.overflow = "hidden";
@@ -100,35 +125,9 @@ async function handleLogin() {
   loaderText.textContent = "Logging you in...";
 
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, code);
-    const user = userCredential.user;
-
-    const myUID = user.uid;
-
-    // fetch user document
-    const myDocRef = doc(db, "participants", myUID);
-    const mySnap = await getDoc(myDocRef);
-
-    if (!mySnap.exists()) throw new Error("User profile not found.");
-
-    currentUser = mySnap.data();
-
-    // fetch assigned user document
-    const assignedUID = currentUser.assignedToAlias;
-
-    const assignedDocRef = doc(db, "participants", assignedUID);
-    const assignedSnap = await getDoc(assignedDocRef);
-
-    if (!assignedSnap.exists()) throw new Error("Assigned person not found");
-
-    assignedUser = assignedSnap.data();
-
-    // continue sign in
-    loaderText.textContent = "Loading your dashboard...";
-    await loadDashboard();
-
+    await signInWithEmailAndPassword(auth, email, code);
   } catch (err) {
-    alert("Error connecting to server: " + err.message);
+    alert("Login failed: " + err.message);
     console.error(err);
   } finally {
     document.body.style.overflow = "auto";
@@ -139,6 +138,23 @@ async function handleLogin() {
 }
 
 window.handleLogin = handleLogin;
+
+async function handleLogout() {
+  try {
+    cleanupRealtimeListeners();
+
+    await signOut(auth);
+    currentUser = null;
+    assignedUser = null;
+
+    showScreen("loginBox");
+  } catch (err) {
+    console.error("Logout failed:", err);
+    alert("Logout failed. Try again.");
+  }
+}
+
+window.handleLogout = handleLogout;
 
 // --- Dashboard / Reveal ---
 async function loadDashboard() {
@@ -192,6 +208,32 @@ async function initDashboardContent() {
     ]);
   } catch (err) {
     console.error("Error initializing dashboard:", err);
+  }
+}
+
+async function loadUserAndDashboard(user) {
+  try {
+    // Fetch current user document
+    const myDocRef = doc(db, "participants", user.uid);
+    const mySnap = await getDoc(myDocRef);
+
+    if (!mySnap.exists()) throw new Error("User profile not found.");
+
+    currentUser = mySnap.data();
+
+    // Fetch assigned user
+    const assignedDocRef = doc(db, "participants", currentUser.assignedToAlias);
+    const assignedSnap = await getDoc(assignedDocRef);
+    if (!assignedSnap.exists()) throw new Error("Assigned user not found.");
+    assignedUser = assignedSnap.data();
+
+    // Load dashboard content
+    await initDashboardContent();
+    
+  } catch (err) {
+    console.error("Error loading dashboard:", err);
+    alert("Failed to load dashboard. Please try again.");
+    showScreen("loginBox");
   }
 }
 
@@ -258,7 +300,7 @@ function fetchAssignedWishlist() {
 
   const assignedRef = doc(db, "participants", currentUser.assignedToAlias);
 
-  onSnapshot(assignedRef, (docSnap) => {
+  const unsubscribeWishlist = onSnapshot(assignedRef, (docSnap) => {
     const newWishlist = docSnap.data()?.wishlist || "";
     if (lastAssignedWishlist !== newWishlist) {
       if (lastAssignedWishlist) {
@@ -269,6 +311,8 @@ function fetchAssignedWishlist() {
       lastAssignedWishlist = newWishlist;
     }
   });
+
+  realtimeUnsubscribes.push(unsubscribeWishlist);
 }
 
 // --- Realtime Chats ---
@@ -294,7 +338,7 @@ function setupRealtimeChats(type) {
     orderBy("timestamp")
   );
 
-  onSnapshot(q, (snapshot) => {
+  const unsubscribe = onSnapshot(q, (snapshot) => {
     chatDiv.innerHTML = ""; // clear once per snapshot
     snapshot.forEach(docSnap => {
       const m = docSnap.data();
@@ -306,6 +350,8 @@ function setupRealtimeChats(type) {
     });
     chatDiv.scrollTop = chatDiv.scrollHeight;
   });
+
+  realtimeUnsubscribes.push(unsubscribe);
 }
 
 // --- Send Chat ---
@@ -340,3 +386,30 @@ async function sendChat(type) {
 }
 
 window.sendChat = sendChat;
+
+function cleanupRealtimeListeners() {
+  // Stop all realtime listeners
+  realtimeUnsubscribes.forEach(unsub => unsub());
+  realtimeUnsubscribes = [];
+
+  // Clear chat and wishlist areas
+  document.getElementById("chatAssigned").innerHTML = "";
+  document.getElementById("chatSanta").innerHTML = "";
+  document.getElementById("myWishlist").value = "";
+  document.getElementById("assignedWishlist").textContent = "";
+  lastAssignedWishlist = "";
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          console.log('New version available, reloading...');
+          window.location.reload();
+        }
+      });
+    });
+  });
+}

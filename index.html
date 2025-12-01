@@ -5,6 +5,11 @@
 <title>Secret Santa</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -30,6 +35,7 @@
 </div>
 
 <div id="dashboard" class="dashboard-container">
+  <button id="logoutBtn" onclick="handleLogout()">X</button>
   <h2>Welcome, <span id="userName"></span>!</h2>
   <h3>You are buying a gift for <span id="assignedName"></span>.</h3>
 

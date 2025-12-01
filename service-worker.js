@@ -1,4 +1,4 @@
-const CACHE_NAME = 'secret-santa-cache-v4';
+const CACHE_NAME = 'secret-santa-cache-v5';
 const FILES_TO_CACHE = [
   './index.html',
   './app.js',
@@ -9,6 +9,7 @@ const FILES_TO_CACHE = [
 
 // Install service worker and cache files
 self.addEventListener('install', event => {
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(FILES_TO_CACHE))
@@ -18,11 +19,15 @@ self.addEventListener('install', event => {
 
 // Activate service worker and remove old caches
 self.addEventListener('activate', event => {
+  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
         keys.map(key => {
-          if (key !== CACHE_NAME) return caches.delete(key);
+          if (key !== CACHE_NAME) {
+            console.log('Deleting old cache:', key);
+            return caches.delete(key);
+          }
         })
       )
     )
